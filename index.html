@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Merge Брейнрот Мемы: Эволюция</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://yandex.ru/games/sdk/v2"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 id="titleText">Merge «Брейнрот Мемы: Эволюция»</h1>
+      <div class="stats">
+        <div class="stat stat--likes">
+          <span class="stat-sticker" aria-hidden="true">❤️</span>
+          <span id="likesLabel">Лайки</span>
+          <strong id="likesValue">0</strong>
+        </div>
+        <div class="stat stat--income">
+          <span class="stat-sticker" aria-hidden="true">📈</span>
+          <span id="incomeLabel">В секунду</span>
+          <strong id="incomeValue">0</strong>
+          <span id="incomeMultHint" class="stat-sub"></span>
+        </div>
+        <div class="stat stat--crit">
+          <span class="stat-sticker" aria-hidden="true">✨</span>
+          <span id="critLabel">Супер %</span>
+          <strong id="critValue">0%</strong>
+        </div>
+        <div class="stat stat--top">
+          <span class="stat-sticker" aria-hidden="true">🏆</span>
+          <span id="topLevelLabel">Топ мем</span>
+          <strong id="topLevelValue">Lv.1</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="panel guide-panel">
+        <h2 id="guideTitle" class="guide-panel__title">Как играть</h2>
+        <div class="guide-body">
+          <p id="guideP1"></p>
+          <p id="guideP2"></p>
+          <p id="guideP3"></p>
+          <p id="guideP4"></p>
+        </div>
+        <!--<button id="resetProgressBtn" type="button" class="btn btn-kid btn-danger">Сбросить всё</button>-->
+        <section id="offlinePanel" class="panel offline hidden">
+          <h2 id="offlineTitle">Ты отсутствовал!</h2>
+          <p id="offlineText">Пока тебя не было, набежали лайки.</p>
+          <div class="offline-actions">
+            <button id="offlineClaimBtn" type="button" class="btn btn-kid primary">Забрать</button>
+            <button id="offlineClaimAdBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm">📺</span> В два раза больше</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="playfield">
+        <div class="grid-wrap">
+          <div id="board" class="board"></div>
+          <div id="particles" class="particles"></div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="panel controls">
+          <button id="spawnFreeBtn" type="button" class="btn btn-kid primary">
+            <span class="btn-sticker" aria-hidden="true">🐱</span>
+            <span class="btn-main">
+              <span id="spawnFreeLabel" class="btn-title">Новый мем</span>
+              <span class="btn-sub"><span id="spawnFreeSub">подождать</span> <span id="cooldownValue">5.0</span> сек</span>
+            </span>
+          </button>
+          <button id="spawnPaidBtn" type="button" class="btn btn-kid">
+            <span class="btn-sticker" aria-hidden="true">💸</span>
+            <span class="btn-main">
+              <span id="spawnPaidLabel" class="btn-title">Купить мем</span>
+              <span class="btn-sub"><span id="spawnPriceValue">10</span> <span id="spawnPaidSub">лайки</span></span>
+            </span>
+          </button>
+          <div class="mini-row">
+            <button id="adBoostBtn" type="button" class="btn btn-kid accent btn-ad-col">
+              <span class="btn-ad-row"><span class="btn-sticker sm" aria-hidden="true">📺</span><span id="adBoostLabel" class="btn-title sm">Реклама: ×2 лайков 30 сек</span></span>
+              <span id="adBoostTimer" class="btn-ad-countdown" hidden></span>
+            </button>
+            <button id="adSpawnBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm" aria-hidden="true">📺</span><span id="adSpawnLabel" class="btn-title sm">Реклама: +5 мемов</span></button>
+          </div>
+          <div class="mini-row">
+            <button id="adInstantBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm" aria-hidden="true">📺</span><span id="adInstantLabel" class="btn-title sm">Реклама: 5 сек пауза 0,3 сек</span></button>          
+          </div>
+          <div class="mini-row">
+          <button id="soundBtn" type="button" class="btn btn-kid ghost"><span class="btn-sticker sm">🔊</span><span id="soundBtnLabel" class="btn-title sm">Звук</span></button>
+        </div>
+        </div>
+
+        <div class="panel shop">
+          <h2 id="shopTitle">Суперсилы</h2>
+          <div class="upgrade-group">
+            <div class="upgrade-head">
+              <span class="upgrade-sticker" aria-hidden="true">💰</span>
+              <h3 id="incomeUpgradeTitle">Больше лайков</h3>
+            </div>
+            <p id="incomeBonusPreview" class="bonus-preview"></p>
+            <button id="buyIncomeUpgradeBtn" type="button" class="btn btn-kid shop-buy">
+              <span class="btn-sticker sm">⬆️</span>
+              <span id="buyIncomeLabel">Улучшить</span>
+              <span class="price-tag" id="incomeUpgradePrice">280</span>
+            </button>
+            <small id="incomeUpgradeLevel">Уровень: 0/10</small>
+          </div>
+          <div class="upgrade-group">
+            <div class="upgrade-head">
+              <span class="upgrade-sticker" aria-hidden="true">⏱️</span>
+              <h3 id="cooldownUpgradeTitle">Быстрее кнопка</h3>
+            </div>
+            <p id="cooldownBonusPreview" class="bonus-preview"></p>
+            <button id="buyCooldownUpgradeBtn" type="button" class="btn btn-kid shop-buy">
+              <span class="btn-sticker sm">⬆️</span>
+              <span id="buyCooldownLabel">Улучшить</span>
+              <span class="price-tag" id="cooldownUpgradePrice">260</span>
+            </button>
+            <small id="cooldownUpgradeLevel">Уровень: 0/10</small>
+          </div>
+          <div class="upgrade-group">
+            <div class="upgrade-head">
+              <span class="upgrade-sticker" aria-hidden="true">🌟</span>
+              <h3 id="critUpgradeTitle">Супер слияние</h3>
+            </div>
+            <p id="critBonusPreview" class="bonus-preview"></p>
+            <button id="buyCritUpgradeBtn" type="button" class="btn btn-kid shop-buy">
+              <span class="btn-sticker sm">⬆️</span>
+              <span id="buyCritLabel">Улучшить</span>
+              <span class="price-tag" id="critUpgradePrice">320</span>
+            </button>
+            <small id="critUpgradeLevel">Уровень: 0/10</small>
+          </div>
+        </div>
+
+        
+      </aside>
+    </main>
+
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
