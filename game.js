@@ -48,8 +48,8 @@ const I18N = {
     spawnPaidSub: "лайки",
     adBoostShort: "Реклама: ×2 лайков 30 сек",
     adSpawnShort: "Реклама: +5 мемов",
-    adInstant: "Реклама: Быстрое создание мемов 5 сек!",
-    adMicroCdToast: "Супер-скорость: 5 сек между мемами пауза всего 0,3 сек!",
+    adInstant: "Реклама: Турбо 5 сек (кулдаун 0,3с)",
+    adMicroCdToast: "Турбо-режим! Кулдаун мемов 0,3 сек в течение 5 секунд!",
     adBoostCountdown: "×2 ещё {t} сек",
     shopTitle: "Суперсилы",
     upgradeIncome: "Больше лайков",
@@ -99,8 +99,8 @@ const I18N = {
     spawnPaidSub: "likes",
     adBoostShort: "Ad: ×2 likes, 30 sec",
     adSpawnShort: "Ad: +5 memes",
-    adInstant: "Ad: Fast meme creation — 5 seconds!",
-    adMicroCdToast: "Turbo: only 0.3s between memes for 5 seconds!",
+    adInstant: "Ad: Turbo 5s (0.3s cooldown)",
+    adMicroCdToast: "Turbo mode! 0.3s meme cooldown for 5 seconds!",
     adBoostCountdown: "×2: {t}s left",
     shopTitle: "Power-ups",
     upgradeIncome: "More likes",
@@ -200,6 +200,7 @@ let bgmAudio = null;
 let bgmStarted = false;
 let bgmSuspendedForAd = false;
 let bgmFadeTimer = null;
+let gamePausedForAd = false;
 
 function $(id) { return document.getElementById(id); }
 function text(key) { return (I18N[state.locale] || I18N.ru)[key] || key; }
@@ -312,20 +313,63 @@ function ensureBackgroundMusic() {
   try {
     const src = template.currentSrc || template.src;
     if (!src) return;
-    bgmAudio = new Audio(src);
-    bgmAudio.loop = true;
-    bgmAudio.volume = clampVolume(BGM_VOLUME);
-    const promise = bgmAudio.play();
-    if (promise && promise.then) {
-      promise.then(() => {
+    if (!ensureBackgroundMusic._ctx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) ensureBackgroundMusic._ctx = new Ctx();
+    }
+    const ctx = ensureBackgroundMusic._ctx;
+    if (ctx) {
+      bgmAudio = new Audio(src);
+      bgmAudio.loop = true;
+      bgmAudio.crossOrigin = "anonymous";
+      const source = ctx.createMediaElementSource(bgmAudio);
+      const gain = ctx.createGain();
+      gain.gain.value = clampVolume(BGM_VOLUME);
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      bgmAudio.volume = 1;
+      bgmAudio._gainNode = gain;
+      bgmAudio._bgmVolume = clampVolume(BGM_VOLUME);
+      const promise = bgmAudio.play();
+      if (promise && promise.then) {
+        promise.then(() => { bgmStarted = true; }).catch(() => {});
+      } else {
         bgmStarted = true;
-      }).catch(() => {});
+      }
     } else {
-      bgmStarted = true;
+      bgmAudio = new Audio(src);
+      bgmAudio.loop = true;
+      bgmAudio.volume = clampVolume(BGM_VOLUME);
+      const promise = bgmAudio.play();
+      if (promise && promise.then) {
+        promise.then(() => { bgmStarted = true; }).catch(() => {});
+      } else {
+        bgmStarted = true;
+      }
     }
   } catch (_) {
-    // Background music is optional and should never break gameplay.
+    // Fallback: try direct Audio if WebAudio fails
+    try {
+      bgmAudio = new Audio(template.currentSrc || template.src);
+      bgmAudio.loop = true;
+      bgmAudio.volume = clampVolume(BGM_VOLUME);
+      const p = bgmAudio.play();
+      if (p && p.then) p.then(() => { bgmStarted = true; }).catch(() => {});
+      else bgmStarted = true;
+    } catch (_2) {}
   }
+}
+
+function getBgmVolume() {
+  if (bgmAudio && bgmAudio._gainNode) return bgmAudio._gainNode.gain.value;
+  return bgmAudio ? bgmAudio.volume : 0;
+}
+function setBgmVolume(v) {
+  if (!bgmAudio) return;
+  try {
+    if (bgmAudio._gainNode) bgmAudio._gainNode.gain.value = Math.max(0, Math.min(1, v));
+    else bgmAudio.volume = Math.max(0, Math.min(1, v));
+  } catch (_) {}
 }
 
 function stopBackgroundMusic() {
@@ -335,7 +379,7 @@ function stopBackgroundMusic() {
   try {
     bgmAudio.pause();
     bgmAudio.currentTime = 0;
-    bgmAudio.volume = clampVolume(BGM_VOLUME);
+    setBgmVolume(clampVolume(BGM_VOLUME));
   } catch (_) {}
   bgmStarted = false;
 }
@@ -347,29 +391,23 @@ function clearBgmFadeTimer() {
   }
 }
 
-/** Пауза фона на время рекламы (короткое затухание громкости). */
 function suspendBgmForAd() {
   clearBgmFadeTimer();
   bgmSuspendedForAd = false;
   if (!state.soundEnabled || !bgmAudio || bgmAudio.paused) return;
   bgmSuspendedForAd = true;
   try {
-    const track = bgmAudio;
-    const startVol = track.volume;
+    const startVol = getBgmVolume();
     const fadeMs = 200;
     const step = 40;
     let elapsed = 0;
     bgmFadeTimer = setInterval(() => {
       elapsed += step;
       const k = Math.min(1, elapsed / fadeMs);
-      try {
-        track.volume = Math.max(0, startVol * (1 - k));
-      } catch (_) {}
+      setBgmVolume(Math.max(0, startVol * (1 - k)));
       if (k >= 1) {
         clearBgmFadeTimer();
-        try {
-          track.pause();
-        } catch (_) {}
+        try { bgmAudio.pause(); } catch (_) {}
       }
     }, step);
   } catch (_) {
@@ -386,8 +424,8 @@ function resumeBgmAfterAd() {
   bgmSuspendedForAd = false;
   if (!bgmAudio) return;
   try {
-    const endVol = clampVolume(BGM_VOLUME);
-    bgmAudio.volume = 0;
+    const endVol = bgmAudio._bgmVolume || clampVolume(BGM_VOLUME);
+    setBgmVolume(0);
     const p = bgmAudio.play();
     if (p && typeof p.catch === "function") p.catch(() => {});
     const fadeMs = 220;
@@ -396,20 +434,14 @@ function resumeBgmAfterAd() {
     bgmFadeTimer = setInterval(() => {
       elapsed += step;
       const k = Math.min(1, elapsed / fadeMs);
-      try {
-        bgmAudio.volume = endVol * k;
-      } catch (_) {}
+      setBgmVolume(endVol * k);
       if (k >= 1) {
         clearBgmFadeTimer();
-        try {
-          bgmAudio.volume = endVol;
-        } catch (_) {}
+        setBgmVolume(endVol);
       }
     }, step);
   } catch (_) {
-    try {
-      bgmAudio.volume = clampVolume(BGM_VOLUME);
-    } catch (_) {}
+    setBgmVolume(bgmAudio._bgmVolume || clampVolume(BGM_VOLUME));
   }
 }
 
@@ -562,12 +594,34 @@ function mergeMemes(from, to) {
 }
 
 function tick(deltaSec) {
+  if (gamePausedForAd) return;
   if (state.spawnCooldown > 0) state.spawnCooldown = Math.max(0, state.spawnCooldown - deltaSec);
   if (Date.now() - state.lastPaidSpawnTs > 30000) {
     state.paidSpawnPrice = Math.max(10, Math.round(state.paidSpawnPrice * 0.8));
     state.lastPaidSpawnTs = Date.now();
   }
   state.likes += recomputeIncomePerSec() * deltaSec;
+}
+
+function pauseGameForAd() {
+  gamePausedForAd = true;
+  if (state.adIncomeBoostUntil > Date.now()) state._adBoostPausedAt = Date.now();
+  if (state.adFastSpawnUntil > Date.now()) state._adFastPausedAt = Date.now();
+}
+
+function resumeGameAfterAd() {
+  if (!gamePausedForAd) return;
+  const pauseDuration = Date.now() - (state._adBoostPausedAt || Date.now());
+  if (state._adBoostPausedAt && state.adIncomeBoostUntil > 0) {
+    state.adIncomeBoostUntil += pauseDuration;
+  }
+  if (state._adFastPausedAt && state.adFastSpawnUntil > 0) {
+    const fastPause = Date.now() - state._adFastPausedAt;
+    state.adFastSpawnUntil += fastPause;
+  }
+  delete state._adBoostPausedAt;
+  delete state._adFastPausedAt;
+  gamePausedForAd = false;
 }
 
 function safeSaveData() {
@@ -782,6 +836,7 @@ function applyLocaleTexts() {
   if (!el.titleText) return;
   try { document.documentElement.lang = state.locale === "en" ? "en" : "ru"; } catch (_) {}
   el.titleText.textContent = text("title");
+  try { document.title = text("title"); } catch (_) {}
   el.likesLabel.textContent = text("likesLabel");
   el.incomeLabel.textContent = text("incomeLabel");
   el.critLabel.textContent = text("critLabel");
@@ -1043,6 +1098,7 @@ const ysdk = {
     if (!this.sdk?.adv?.showFullscreenAdv || this.interstitialShowing) return;
     if (Date.now() - state.lastInterstitialTs < INTERSTITIAL_COOLDOWN_MS) return;
     this.interstitialShowing = true;
+    pauseGameForAd();
     suspendBgmForAd();
     this.stopGameplay();
     this.sdk.adv.showFullscreenAdv({
@@ -1050,12 +1106,14 @@ const ysdk = {
         onClose: (wasShown) => {
           state.lastInterstitialTs = Date.now();
           this.interstitialShowing = false;
+          resumeGameAfterAd();
           resumeBgmAfterAd();
           this.startGameplay();
         },
         onError: () => {
           state.lastInterstitialTs = Date.now();
           this.interstitialShowing = false;
+          resumeGameAfterAd();
           resumeBgmAfterAd();
           this.startGameplay();
         }
@@ -1077,6 +1135,7 @@ const ysdk = {
         console.warn("Reward callback failed", e);
       }
     };
+    pauseGameForAd();
     suspendBgmForAd();
     this.stopGameplay();
     this.sdk.adv.showRewardedVideo({
@@ -1084,10 +1143,12 @@ const ysdk = {
         onRewarded: grantOnce,
         onClose: (wasShown) => {
           if (wasShown !== false) grantOnce();
+          resumeGameAfterAd();
           resumeBgmAfterAd();
           this.startGameplay();
         },
         onError: () => {
+          resumeGameAfterAd();
           resumeBgmAfterAd();
           this.startGameplay();
           toast(text("adsUnavailable"));
@@ -1289,14 +1350,38 @@ async function bootstrap() {
   }, 10000);
 
   window.addEventListener("visibilitychange", () => {
-    if (document.hidden) ysdk.stopGameplay();
-    else ysdk.startGameplay();
+    if (document.hidden) {
+      ysdk.stopGameplay();
+      if (bgmAudio && !bgmAudio.paused) {
+        try { bgmAudio.pause(); } catch (_) {}
+      }
+    } else {
+      ysdk.startGameplay();
+      if (state.soundEnabled && bgmStarted && bgmAudio && !bgmSuspendedForAd) {
+        try { const p = bgmAudio.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+      }
+    }
   });
   window.addEventListener("beforeunload", () => {
     saveGame();
     ysdk.saveCloudData();
     ysdk.stopGameplay();
   });
+
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+  document.addEventListener("touchmove", (e) => {
+    if (!e.target.closest(".app")) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener("selectstart", (e) => e.preventDefault());
+
+  if (navigator.mediaSession) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: text("title"),
+      artist: "Brainrot Merge"
+    });
+    navigator.mediaSession.setActionHandler("play", () => {});
+    navigator.mediaSession.setActionHandler("pause", () => {});
+  }
 }
 
 bootstrap();

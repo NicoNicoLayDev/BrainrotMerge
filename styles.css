@@ -1,5 +1,5 @@
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+html, body { height: 100%; overflow: hidden; touch-action: none; }
 body {
   margin: 0;
   font-family: "Segoe UI", "Nunito", "Arial Rounded MT Bold", Arial, sans-serif;
@@ -14,7 +14,7 @@ body {
   animation: bgShift 9s ease-in-out infinite alternate;
   scale: 0.9;
 }
-.app { max-width: 1240px; margin: 0 auto; padding: 10px; }
+.app { max-width: 1240px; margin: 0 auto; padding: 10px; height: 100%; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
 .topbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 h1 { margin: 0; font-size: clamp(18px, 2.2vw, 26px); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 6px; }
@@ -455,4 +455,55 @@ h1 { margin: 0; font-size: clamp(18px, 2.2vw, 26px); }
   .app { padding: 8px; }
   .stats { grid-template-columns: repeat(2, minmax(90px, 1fr)); width: 100%; }
   .sidebar { grid-template-columns: 1fr; }
+}
+
+/* Mobile landscape orientation */
+@media (max-height: 500px) and (orientation: landscape) {
+  body { scale: 1; }
+  .app { padding: 4px 8px; height: 100vh; overflow-y: auto; }
+  .topbar { margin-bottom: 4px; gap: 4px; }
+  h1 { font-size: 14px; }
+  .stats { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .stat { padding: 3px 6px; min-width: 70px; border-radius: 8px; }
+  .stat span:not(.stat-sticker) { font-size: 10px; }
+  .stat strong { font-size: 13px; }
+  .stat-sticker { font-size: 14px; right: 4px; top: 2px; }
+  .main {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    gap: 6px;
+    align-items: start;
+  }
+  .guide-panel { display: none; }
+  .playfield { min-width: 0; }
+  .grid-wrap { padding: 4px; border-radius: 10px; }
+  .board { gap: 3px; }
+  .cell { border-radius: 8px; }
+  .meme { border-radius: 6px; font-size: 11px; }
+  .meme .label { font-size: 10px; }
+  .meme .level { font-size: 9px; margin-top: 1px; }
+  .meme .meme-meta { padding: 3px 3px 2px; }
+  .sidebar { display: grid; gap: 4px; grid-template-columns: 1fr; }
+  .panel { padding: 4px; border-radius: 8px; }
+  .controls { gap: 3px; }
+  .mini-row { gap: 3px; }
+  .btn-kid { padding: 6px 8px; border-radius: 10px; font-size: 12px; gap: 6px; border-width: 2px; box-shadow: 0 2px 0 rgba(0,0,0,0.22); }
+  .btn-kid .btn-sticker { font-size: 22px; }
+  .btn-kid .btn-sticker.sm { font-size: 16px; }
+  .btn-kid .btn-title { font-size: 13px; }
+  .btn-kid .btn-title.sm { font-size: 11px; }
+  .btn-kid .btn-sub { font-size: 11px; }
+  .shop { gap: 3px; }
+  .shop h2 { font-size: 13px; margin: 0 0 2px; }
+  .upgrade-group { padding: 4px; border-radius: 6px; }
+  .upgrade-head { gap: 4px; margin-bottom: 2px; }
+  .upgrade-sticker { font-size: 16px; }
+  .upgrade-group h3 { font-size: 12px; }
+  .bonus-preview { font-size: 11px; margin: 0 0 3px; }
+  .upgrade-group small { font-size: 11px; margin-top: 3px; }
+  .btn-kid.shop-buy { gap: 4px; }
+  .price-tag { padding: 1px 6px; font-size: 12px; }
+  .offline { padding: 4px; margin-top: 4px; border-radius: 8px; }
+  .offline h2 { font-size: 13px; }
+  .offline p { font-size: 12px; }
+  .toast { padding: 6px 10px; font-size: 12px; bottom: 6px; }
 }
