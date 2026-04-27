@@ -1382,6 +1382,23 @@ async function bootstrap() {
     navigator.mediaSession.setActionHandler("play", () => {});
     navigator.mediaSession.setActionHandler("pause", () => {});
   }
+
 }
 
-bootstrap();
+// Auto-scale: fit app to viewport without scrollbars
+function fitToScreen() {
+  const app = document.querySelector(".app");
+  if (!app) return;
+  app.style.transform = "";
+  app.style.transformOrigin = "top center";
+  void app.offsetHeight;
+  const sh = app.scrollHeight;
+  const vh = window.innerHeight;
+  if (sh > vh + 2) {
+    app.style.transform = "scale(" + (vh / sh) + ")";
+  }
+}
+window.addEventListener("resize", fitToScreen);
+window.addEventListener("load", fitToScreen);
+
+bootstrap().then(() => { fitToScreen(); });
