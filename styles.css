@@ -46,13 +46,26 @@
 * {
   box-sizing: border-box;
   -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
-html, body { height: 100%; overflow: hidden; touch-action: none; }
+html, body {
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+}
 body {
   margin: 0;
   font-family: var(--font-body);
+  font-size: 18px;
   font-weight: 600;
   color: var(--text);
   background:
@@ -144,17 +157,27 @@ body {
 
 /* ---------------- app layout ---------------- */
 
+/* html/body не прокручиваются (п. 1.10.2) — но внутри «.app» разрешён собственный
+  скролл. Это важно на мобильных: без этого панель обучения / оффлайн-плашка просто
+  обрезаются по высоте вьюпорта. */
 .app {
   position: relative;
   z-index: 1;
   max-width: 1480px;
   margin: 0 auto;
   padding: 12px clamp(8px, 2vw, 22px);
-  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
 }
+.app::-webkit-scrollbar { display: none; }
 
 /* ---------------- topbar ---------------- */
 
@@ -197,7 +220,7 @@ body {
   gap: 10px;
 }
 .topbar__logo {
-  font-size: clamp(22px, 3vw, 30px);
+  font-size: clamp(26px, 3.2vw, 34px);
   filter: drop-shadow(0 0 10px rgba(255, 62, 234, 0.7)) drop-shadow(0 0 6px rgba(43, 245, 255, 0.4));
   animation: logoBob 3.4s ease-in-out infinite;
   display: inline-block;
@@ -205,7 +228,7 @@ body {
 h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(16px, 2.2vw, 26px);
+  font-size: clamp(20px, 2.4vw, 30px);
   font-weight: 800;
   background: linear-gradient(90deg, #fff 0%, var(--neon-cyan-soft) 35%, var(--neon-pink-soft) 70%, var(--neon-gold-soft) 100%);
   background-size: 220% 100%;
@@ -266,7 +289,7 @@ h1 {
 .stat-label {
   display: block;
   opacity: 0.85;
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -275,7 +298,7 @@ h1 {
 .stat-value {
   display: block;
   font-family: var(--font-display);
-  font-size: clamp(14px, 1.8vw, 19px);
+  font-size: clamp(18px, 2vw, 23px);
   font-weight: 800;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
@@ -291,7 +314,7 @@ h1 {
   left: 6px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 22px;
+  font-size: 26px;
   line-height: 1;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
   pointer-events: none;
@@ -304,7 +327,7 @@ h1 {
 .stat-sub {
   display: block;
   margin-top: 1px;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--neon-gold-soft);
@@ -357,7 +380,7 @@ h1 {
 .guide-panel__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 23px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -379,7 +402,7 @@ h1 {
 }
 .guide-body p {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 17.5px;
   line-height: 1.5;
   font-weight: 600;
   color: var(--text-soft);
@@ -482,7 +505,7 @@ h1 {
   user-select: none;
   overflow: hidden;
   padding: 4px;
-  font-size: 13px;
+  font-size: 17px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform 0.16s ease, box-shadow 0.18s ease, filter 0.18s ease;
   animation: memeIdle 3.6s ease-in-out infinite;
@@ -563,13 +586,13 @@ h1 {
   margin-top: 0;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(11px, 2.6vw, 13px);
+  font-size: clamp(15px, 2.8vw, 17px);
   line-height: 1.15;
 }
 .meme .level {
   opacity: 1;
   margin-top: 3px;
-  font-size: clamp(10px, 2.2vw, 12px);
+  font-size: clamp(14px, 2.4vw, 16px);
   line-height: 1;
   font-weight: 800;
   color: var(--neon-gold-soft);
@@ -661,7 +684,7 @@ h1 {
 .shop h2 {
   margin: 0 0 4px;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
   color: #fff;
   display: flex;
@@ -705,7 +728,7 @@ h1 {
   margin-bottom: 6px;
 }
 .upgrade-sticker {
-  font-size: 24px;
+  font-size: 28px;
   line-height: 1;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
   animation: stickerWiggle 5s ease-in-out infinite;
@@ -717,14 +740,14 @@ h1 {
 .upgrade-group h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: 0.01em;
 }
 .bonus-preview {
   position: relative;
   margin: 0 0 8px;
-  font-size: 12.5px;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--neon-gold-soft);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -734,7 +757,7 @@ h1 {
   display: block;
   margin-top: 6px;
   opacity: 0.95;
-  font-size: 12.5px;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--text-muted);
   position: relative;
@@ -743,6 +766,7 @@ h1 {
   display: inline-block;
   margin-left: 6px;
   padding: 2px 10px;
+  font-size: 16px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.35);
@@ -760,7 +784,7 @@ h1 {
   border-radius: var(--radius-sm);
   padding: 9px 10px;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 800;
   color: #fff;
   background: linear-gradient(180deg, var(--neon-cyan), #1a85b8);
@@ -776,7 +800,7 @@ h1 {
   text-align: left;
   padding: 12px 14px;
   border-radius: 18px;
-  font-size: 15px;
+  font-size: 19px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   box-shadow: 0 6px 0 rgba(0, 0, 0, 0.28), 0 10px 22px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   background: linear-gradient(180deg, var(--neon-cyan), #1f7fb8);
@@ -804,23 +828,23 @@ h1 {
 .btn-kid:hover::after { left: 130%; }
 .btn-kid .btn-sticker {
   flex-shrink: 0;
-  font-size: 32px;
+  font-size: 36px;
   line-height: 1;
   filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
   animation: stickerWiggle 4.5s ease-in-out infinite;
   display: inline-block;
 }
-.btn-kid .btn-sticker.sm { font-size: 22px; }
+.btn-kid .btn-sticker.sm { font-size: 26px; }
 .btn-kid .btn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .btn-kid .btn-title {
   font-weight: 800;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1.15;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
-.btn-kid .btn-title.sm { font-size: 14px; }
+.btn-kid .btn-title.sm { font-size: 18px; }
 .btn-kid .btn-sub {
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
   opacity: 0.95;
   color: rgba(255, 255, 255, 0.92);
@@ -845,7 +869,7 @@ h1 {
   min-width: 0;
 }
 .btn-ad-countdown {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--neon-gold-soft);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -899,12 +923,12 @@ h1 {
 .offline h2 {
   margin: 0 0 6px;
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--neon-cyan-soft);
   text-shadow: 0 0 12px rgba(43, 245, 255, 0.7);
 }
-.offline p { margin: 0 0 8px; color: var(--text-soft); }
+.offline p { margin: 0 0 8px; color: var(--text-soft); font-size: 17px; }
 .offline.hidden { display: none; }
 .offline-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
@@ -919,6 +943,7 @@ h1 {
   border: 1px solid rgba(255, 62, 234, 0.6);
   border-radius: 14px;
   padding: 12px 18px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--text);
   opacity: 0;
@@ -1090,42 +1115,54 @@ h1 {
     max-width: none;
   }
   .stat { padding: 6px 6px 6px 28px; }
-  .stat-sticker { left: 4px; font-size: 16px; }
-  .stat-label { font-size: 9.5px; }
-  .stat-value { font-size: 13px; }
-  .stat-sub { font-size: 9px; }
+  .stat-sticker { left: 4px; font-size: 20px; }
+  .stat-label { font-size: 13.5px; }
+  .stat-value { font-size: 17px; }
+  .stat-sub { font-size: 13px; }
   .sidebar { grid-template-columns: 1fr; }
-  .btn-kid { padding: 10px 12px; gap: 10px; }
-  .btn-kid .btn-sticker { font-size: 26px; }
-  .btn-kid .btn-title { font-size: 14px; }
+  .btn-kid { padding: 10px 12px; gap: 10px; font-size: 17px; }
+  .btn-kid .btn-sticker { font-size: 30px; }
+  .btn-kid .btn-title { font-size: 18px; }
+  .btn-kid .btn-sub { font-size: 16px; }
+  .guide-panel__title { font-size: 21px; }
+  .guide-body p { font-size: 16px; }
+  .shop h2 { font-size: 20px; }
+  .upgrade-group h3 { font-size: 18px; }
+  .bonus-preview { font-size: 15.5px; }
+  .upgrade-group small { font-size: 15.5px; }
 }
 
 @media (max-width: 480px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
-  h1 { font-size: 16px; }
-  .topbar__logo { font-size: 22px; }
+  h1 { font-size: 20px; }
+  .topbar__logo { font-size: 26px; }
   .grid-wrap { padding: 8px; }
   .board { gap: 5px; }
   .panel { padding: 10px; border-radius: 18px; }
   .upgrade-group { padding: 8px; }
-  .meme .label { font-size: 10px; }
-  .meme .level { font-size: 9px; }
+  .meme .label { font-size: 14px; }
+  .meme .level { font-size: 13px; }
+  /* (Новое) Гарантируем, что панель обучения видна на мобильном и не обрезается. */
+  .guide-panel { display: flex !important; }
+  .guide-body { flex-direction: column; }
+  .guide-body p { font-size: 15.5px; flex: none; }
 }
 
-/* Mobile landscape orientation — dense layout */
+/* Mobile landscape orientation — dense layout (при этом текст по-прежнему
+   читабелен — все размеры подняты относительно предыдущей ревизии) */
 @media (max-height: 500px) and (orientation: landscape) {
   .app { padding: 4px 8px; gap: 4px; }
   .topbar { padding: 4px 8px; margin-bottom: 0; gap: 6px; border-radius: 14px; }
   .topbar__brand { gap: 6px; }
-  .topbar__logo { font-size: 16px; }
-  h1 { font-size: 13px; }
+  .topbar__logo { font-size: 20px; }
+  h1 { font-size: 17px; }
   .stats { grid-template-columns: repeat(4, 1fr); gap: 4px; max-width: none; }
   .stat { padding: 3px 4px 3px 24px; border-radius: 10px; }
   .stat::before { width: 18px; }
-  .stat-sticker { font-size: 13px; left: 3px; }
-  .stat-label { font-size: 8.5px; }
-  .stat-value { font-size: 11px; }
-  .stat-sub { font-size: 8px; }
+  .stat-sticker { font-size: 17px; left: 3px; }
+  .stat-label { font-size: 12.5px; }
+  .stat-value { font-size: 15px; }
+  .stat-sub { font-size: 12px; }
   .main {
     grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
     grid-template-areas: "play side";
@@ -1138,9 +1175,9 @@ h1 {
   .grid-wrap::before { border-radius: 14px; }
   .board { gap: 4px; }
   .cell { border-radius: 10px; }
-  .meme { border-radius: 8px; font-size: 11px; }
-  .meme .label { font-size: 10px; }
-  .meme .level { font-size: 9px; margin-top: 1px; }
+  .meme { border-radius: 8px; font-size: 15px; }
+  .meme .label { font-size: 14px; }
+  .meme .level { font-size: 13px; margin-top: 1px; }
   .meme .meme-meta { padding: 3px 3px 2px; }
   .sidebar { grid-template-columns: 1fr; gap: 4px; }
   .panel { padding: 6px; border-radius: 12px; }
@@ -1148,29 +1185,29 @@ h1 {
   .btn-kid {
     padding: 6px 8px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: 16px;
     gap: 6px;
     border-width: 2px;
     box-shadow: 0 3px 0 rgba(0, 0, 0, 0.28), 0 4px 10px rgba(0, 0, 0, 0.3);
   }
-  .btn-kid .btn-sticker { font-size: 22px; }
-  .btn-kid .btn-sticker.sm { font-size: 16px; }
-  .btn-kid .btn-title { font-size: 13px; }
-  .btn-kid .btn-title.sm { font-size: 11px; }
-  .btn-kid .btn-sub { font-size: 11px; }
+  .btn-kid .btn-sticker { font-size: 26px; }
+  .btn-kid .btn-sticker.sm { font-size: 20px; }
+  .btn-kid .btn-title { font-size: 17px; }
+  .btn-kid .btn-title.sm { font-size: 15px; }
+  .btn-kid .btn-sub { font-size: 15px; }
   .shop { gap: 4px; }
-  .shop h2 { font-size: 13px; margin: 0 0 2px; }
+  .shop h2 { font-size: 17px; margin: 0 0 2px; }
   .shop h2::before { font-size: 1em; }
   .upgrade-group { padding: 5px 6px; border-radius: 10px; }
   .upgrade-head { gap: 6px; margin-bottom: 3px; }
-  .upgrade-sticker { font-size: 17px; }
-  .upgrade-group h3 { font-size: 12px; }
-  .bonus-preview { font-size: 11px; margin: 0 0 3px; }
-  .upgrade-group small { font-size: 11px; margin-top: 3px; }
+  .upgrade-sticker { font-size: 21px; }
+  .upgrade-group h3 { font-size: 16px; }
+  .bonus-preview { font-size: 15px; margin: 0 0 3px; }
+  .upgrade-group small { font-size: 15px; margin-top: 3px; }
   .btn-kid.shop-buy { gap: 4px; }
-  .price-tag { padding: 1px 6px; font-size: 11px; }
+  .price-tag { padding: 1px 6px; font-size: 15px; }
   .offline { padding: 6px; margin-top: 4px; border-radius: 10px; }
-  .offline h2 { font-size: 12px; }
-  .offline p { font-size: 11px; margin: 0 0 4px; }
-  .toast { padding: 6px 10px; font-size: 12px; bottom: 6px; }
+  .offline h2 { font-size: 16px; }
+  .offline p { font-size: 15px; margin: 0 0 4px; }
+  .toast { padding: 6px 10px; font-size: 16px; bottom: 6px; }
 }
