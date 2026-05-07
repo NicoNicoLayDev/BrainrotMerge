@@ -46,10 +46,10 @@ const I18N = {
     spawnFreeSub: "подождать",
     spawnPaid: "Купить мем",
     spawnPaidSub: "лайки",
-    adBoostShort: "Реклама: ×2 лайков 30 сек",
-    adSpawnShort: "Реклама: +5 мемов",
-    adInstant: "Реклама: Турбо 5 сек (кулдаун 0,3с)",
-    adMicroCdToast: "Турбо-режим! Кулдаун мемов 0,3 сек в течение 5 секунд!",
+    adBoostShort: "Реклама: ×2 лайков на 30 сек",
+    adSpawnShort: "Реклама: +5 мемов на поле",
+    adInstant: "Реклама: Турбо-кулдаун 0,3 сек на 5 секунд",
+    adMicroCdToast: "Турбо-режим! Кулдаун кнопки «Новый мем» — 0,3 сек на 5 секунд.",
     adBoostCountdown: "×2 ещё {t} сек",
     shopTitle: "Суперсилы",
     upgradeIncome: "Больше лайков",
@@ -97,10 +97,10 @@ const I18N = {
     spawnFreeSub: "wait",
     spawnPaid: "Buy meme",
     spawnPaidSub: "likes",
-    adBoostShort: "Ad: ×2 likes, 30 sec",
-    adSpawnShort: "Ad: +5 memes",
-    adInstant: "Ad: Turbo 5s (0.3s cooldown)",
-    adMicroCdToast: "Turbo mode! 0.3s meme cooldown for 5 seconds!",
+    adBoostShort: "Ad: ×2 likes for 30 sec",
+    adSpawnShort: "Ad: +5 memes on the board",
+    adInstant: "Ad: Turbo cooldown 0.3s for 5 seconds",
+    adMicroCdToast: "Turbo mode! «New meme» button cooldown is 0.3s for 5 seconds.",
     adBoostCountdown: "×2: {t}s left",
     shopTitle: "Power-ups",
     upgradeIncome: "More likes",
@@ -196,11 +196,16 @@ const state = {
 const el = {};
 const loadedMemeIcons = new Map();
 const loadedSounds = new Map();
-let bgmAudio = null;
+let audioCtx = null;
+let bgmBuffer = null;
+let bgmSource = null;
+let bgmGain = null;
 let bgmStarted = false;
+let bgmStarting = false;
 let bgmSuspendedForAd = false;
 let bgmFadeTimer = null;
 let gamePausedForAd = false;
+let gamePausedForVisibility = false;
 
 function $(id) { return document.getElementById(id); }
 function text(key) { return (I18N[state.locale] || I18N.ru)[key] || key; }
@@ -265,11 +270,20 @@ function preloadAudio(src) {
   return new Promise((resolve) => {
     const a = new Audio();
     a.preload = "auto";
+    try { a.disableRemotePlayback = true; } catch (_) {}
     a.addEventListener("canplaythrough", () => resolve(a), { once: true });
     a.addEventListener("error", () => resolve(null), { once: true });
     a.src = src;
     try { a.load(); } catch (_) { resolve(null); }
   });
+}
+
+function getAudioContext() {
+  if (audioCtx) return audioCtx;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  try { audioCtx = new Ctx(); } catch (_) { audioCtx = null; }
+  return audioCtx;
 }
 
 async function loadAssets() {
@@ -289,12 +303,14 @@ async function loadAssets() {
 
 function playSoundEffect(key, fallbackArgs) {
   if (!state.soundEnabled) return;
+  if (gamePausedForAd || gamePausedForVisibility) return;
   const template = loadedSounds.get(key);
   if (template && key !== "background") {
     try {
       const src = template.currentSrc || template.src;
       if (!src) throw new Error("no src");
       const a = new Audio(src);
+      try { a.disableRemotePlayback = true; } catch (_) {}
       a.volume = clampVolume(MASTER_VOLUME);
       const p = a.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
@@ -306,81 +322,71 @@ function playSoundEffect(key, fallbackArgs) {
   playBeep(...fallbackArgs);
 }
 
+/**
+ * BGM uses AudioBufferSourceNode (no <audio> element) so the OS-level media
+ * controls / system player do NOT register the page as media playback —
+ * required by Yandex Games platform rule 1.6.2.5.
+ */
 function ensureBackgroundMusic() {
-  if (!state.soundEnabled || bgmStarted) return;
-  const template = loadedSounds.get("background");
-  if (!template) return;
-  try {
-    const src = template.currentSrc || template.src;
-    if (!src) return;
-    if (!ensureBackgroundMusic._ctx) {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (Ctx) ensureBackgroundMusic._ctx = new Ctx();
-    }
-    const ctx = ensureBackgroundMusic._ctx;
-    if (ctx) {
-      bgmAudio = new Audio(src);
-      bgmAudio.loop = true;
-      bgmAudio.crossOrigin = "anonymous";
-      const source = ctx.createMediaElementSource(bgmAudio);
-      const gain = ctx.createGain();
-      gain.gain.value = clampVolume(BGM_VOLUME);
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      bgmAudio.volume = 1;
-      bgmAudio._gainNode = gain;
-      bgmAudio._bgmVolume = clampVolume(BGM_VOLUME);
-      const promise = bgmAudio.play();
-      if (promise && promise.then) {
-        promise.then(() => { bgmStarted = true; }).catch(() => {});
-      } else {
-        bgmStarted = true;
-      }
-    } else {
-      bgmAudio = new Audio(src);
-      bgmAudio.loop = true;
-      bgmAudio.volume = clampVolume(BGM_VOLUME);
-      const promise = bgmAudio.play();
-      if (promise && promise.then) {
-        promise.then(() => { bgmStarted = true; }).catch(() => {});
-      } else {
-        bgmStarted = true;
-      }
-    }
-  } catch (_) {
-    // Fallback: try direct Audio if WebAudio fails
+  if (!state.soundEnabled || bgmStarted || bgmStarting) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  bgmStarting = true;
+  const startSource = () => {
+    if (!bgmBuffer || !ctx) { bgmStarting = false; return; }
     try {
-      bgmAudio = new Audio(template.currentSrc || template.src);
-      bgmAudio.loop = true;
-      bgmAudio.volume = clampVolume(BGM_VOLUME);
-      const p = bgmAudio.play();
-      if (p && p.then) p.then(() => { bgmStarted = true; }).catch(() => {});
-      else bgmStarted = true;
-    } catch (_2) {}
-  }
+      if (bgmSource) {
+        try { bgmSource.stop(); } catch (_) {}
+        try { bgmSource.disconnect(); } catch (_) {}
+      }
+      bgmGain = ctx.createGain();
+      bgmGain.gain.value = clampVolume(BGM_VOLUME);
+      bgmGain.connect(ctx.destination);
+      bgmSource = ctx.createBufferSource();
+      bgmSource.buffer = bgmBuffer;
+      bgmSource.loop = true;
+      bgmSource.connect(bgmGain);
+      bgmSource.start(0);
+      bgmStarted = true;
+    } catch (_) {}
+    bgmStarting = false;
+  };
+  const ready = ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
+  ready.then(() => {
+    if (bgmBuffer) return startSource();
+    return fetch(ASSETS.sounds.background)
+      .then((r) => r.arrayBuffer())
+      .then((data) => new Promise((resolve, reject) => {
+        try {
+          const p = ctx.decodeAudioData(data, (buf) => { bgmBuffer = buf; resolve(); }, (err) => reject(err));
+          if (p && p.then) p.then((buf) => { bgmBuffer = buf; resolve(); }).catch(reject);
+        } catch (e) { reject(e); }
+      }))
+      .then(startSource)
+      .catch(() => { bgmStarting = false; });
+  }).catch(() => { bgmStarting = false; });
 }
 
 function getBgmVolume() {
-  if (bgmAudio && bgmAudio._gainNode) return bgmAudio._gainNode.gain.value;
-  return bgmAudio ? bgmAudio.volume : 0;
+  return bgmGain ? bgmGain.gain.value : 0;
 }
 function setBgmVolume(v) {
-  if (!bgmAudio) return;
-  try {
-    if (bgmAudio._gainNode) bgmAudio._gainNode.gain.value = Math.max(0, Math.min(1, v));
-    else bgmAudio.volume = Math.max(0, Math.min(1, v));
-  } catch (_) {}
+  if (!bgmGain) return;
+  try { bgmGain.gain.value = Math.max(0, Math.min(1, v)); } catch (_) {}
 }
 
 function stopBackgroundMusic() {
   clearBgmFadeTimer();
   bgmSuspendedForAd = false;
-  if (!bgmAudio) return;
-  try {
-    bgmAudio.pause();
-    bgmAudio.currentTime = 0;
-    setBgmVolume(clampVolume(BGM_VOLUME));
-  } catch (_) {}
+  if (bgmSource) {
+    try { bgmSource.stop(); } catch (_) {}
+    try { bgmSource.disconnect(); } catch (_) {}
+  }
+  if (bgmGain) {
+    try { bgmGain.disconnect(); } catch (_) {}
+  }
+  bgmSource = null;
+  bgmGain = null;
   bgmStarted = false;
 }
 
@@ -394,7 +400,7 @@ function clearBgmFadeTimer() {
 function suspendBgmForAd() {
   clearBgmFadeTimer();
   bgmSuspendedForAd = false;
-  if (!state.soundEnabled || !bgmAudio || bgmAudio.paused) return;
+  if (!state.soundEnabled || !bgmGain) return;
   bgmSuspendedForAd = true;
   try {
     const startVol = getBgmVolume();
@@ -407,7 +413,9 @@ function suspendBgmForAd() {
       setBgmVolume(Math.max(0, startVol * (1 - k)));
       if (k >= 1) {
         clearBgmFadeTimer();
-        try { bgmAudio.pause(); } catch (_) {}
+        if (audioCtx && audioCtx.state === "running") {
+          try { audioCtx.suspend(); } catch (_) {}
+        }
       }
     }, step);
   } catch (_) {
@@ -422,27 +430,28 @@ function resumeBgmAfterAd() {
     return;
   }
   bgmSuspendedForAd = false;
-  if (!bgmAudio) return;
-  try {
-    const endVol = bgmAudio._bgmVolume || clampVolume(BGM_VOLUME);
-    setBgmVolume(0);
-    const p = bgmAudio.play();
-    if (p && typeof p.catch === "function") p.catch(() => {});
-    const fadeMs = 220;
-    const step = 45;
-    let elapsed = 0;
-    bgmFadeTimer = setInterval(() => {
-      elapsed += step;
-      const k = Math.min(1, elapsed / fadeMs);
-      setBgmVolume(endVol * k);
-      if (k >= 1) {
-        clearBgmFadeTimer();
-        setBgmVolume(endVol);
-      }
-    }, step);
-  } catch (_) {
-    setBgmVolume(bgmAudio._bgmVolume || clampVolume(BGM_VOLUME));
-  }
+  if (!bgmGain || !audioCtx) return;
+  const ready = audioCtx.state === "suspended" ? audioCtx.resume() : Promise.resolve();
+  ready.then(() => {
+    try {
+      const endVol = clampVolume(BGM_VOLUME);
+      setBgmVolume(0);
+      const fadeMs = 220;
+      const step = 45;
+      let elapsed = 0;
+      bgmFadeTimer = setInterval(() => {
+        elapsed += step;
+        const k = Math.min(1, elapsed / fadeMs);
+        setBgmVolume(endVol * k);
+        if (k >= 1) {
+          clearBgmFadeTimer();
+          setBgmVolume(endVol);
+        }
+      }, step);
+    } catch (_) {
+      setBgmVolume(clampVolume(BGM_VOLUME));
+    }
+  }).catch(() => {});
 }
 
 function formatInt(v) {
@@ -594,7 +603,7 @@ function mergeMemes(from, to) {
 }
 
 function tick(deltaSec) {
-  if (gamePausedForAd) return;
+  if (gamePausedForAd || gamePausedForVisibility) return;
   if (state.spawnCooldown > 0) state.spawnCooldown = Math.max(0, state.spawnCooldown - deltaSec);
   if (Date.now() - state.lastPaidSpawnTs > 30000) {
     state.paidSpawnPrice = Math.max(10, Math.round(state.paidSpawnPrice * 0.8));
@@ -605,15 +614,19 @@ function tick(deltaSec) {
 
 function pauseGameForAd() {
   gamePausedForAd = true;
-  if (state.adIncomeBoostUntil > Date.now()) state._adBoostPausedAt = Date.now();
-  if (state.adFastSpawnUntil > Date.now()) state._adFastPausedAt = Date.now();
+  const now = Date.now();
+  if (state.adIncomeBoostUntil > now) {
+    state._adBoostPausedAt = now;
+    state._adBoostFrozenLeftMs = state.adIncomeBoostUntil - now;
+  }
+  if (state.adFastSpawnUntil > now) state._adFastPausedAt = now;
 }
 
 function resumeGameAfterAd() {
   if (!gamePausedForAd) return;
-  const pauseDuration = Date.now() - (state._adBoostPausedAt || Date.now());
   if (state._adBoostPausedAt && state.adIncomeBoostUntil > 0) {
-    state.adIncomeBoostUntil += pauseDuration;
+    const boostPause = Date.now() - state._adBoostPausedAt;
+    state.adIncomeBoostUntil += boostPause;
   }
   if (state._adFastPausedAt && state.adFastSpawnUntil > 0) {
     const fastPause = Date.now() - state._adFastPausedAt;
@@ -621,6 +634,7 @@ function resumeGameAfterAd() {
   }
   delete state._adBoostPausedAt;
   delete state._adFastPausedAt;
+  delete state._adBoostFrozenLeftMs;
   gamePausedForAd = false;
 }
 
@@ -818,7 +832,12 @@ function renderUI() {
   el.spawnFreeBtn.disabled = state.spawnCooldown > 0;
   el.spawnPaidBtn.disabled = state.likes < state.paidSpawnPrice;
 
-  const adBoostLeftMs = state.adIncomeBoostUntil - Date.now();
+  // П. 4.7: показываемый таймер бонуса замораживается, пока игра на паузе
+  // (реклама / окно скрыто). Логика остановки самих бонусов реализована в
+  // pauseGameForAd / resumeGameAfterAd через сдвиг adIncomeBoostUntil.
+  const adBoostLeftMs = (gamePausedForAd || gamePausedForVisibility)
+    ? (state._adBoostFrozenLeftMs ?? (state.adIncomeBoostUntil - Date.now()))
+    : (state.adIncomeBoostUntil - Date.now());
   if (el.adBoostBtn && el.adBoostTimer) {
     if (adBoostLeftMs > 0) {
       el.adBoostTimer.hidden = false;
@@ -1349,53 +1368,107 @@ async function bootstrap() {
     ysdk.saveCloudData();
   }, 10000);
 
-  window.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      ysdk.stopGameplay();
-      if (bgmAudio && !bgmAudio.paused) {
-        try { bgmAudio.pause(); } catch (_) {}
+  // Пауза при сворачивании / переходе на другую вкладку (п. 1.3 + 4.7)
+  const pauseForHide = () => {
+    if (gamePausedForVisibility) return;
+    gamePausedForVisibility = true;
+    const now = Date.now();
+    if (state.adIncomeBoostUntil > now && !state._adBoostPausedAt) {
+      state._adBoostPausedAt = now;
+      state._adBoostFrozenLeftMs = state.adIncomeBoostUntil - now;
+    }
+    if (state.adFastSpawnUntil > now && !state._adFastPausedAt) {
+      state._adFastPausedAt = now;
+    }
+    try { ysdk.stopGameplay(); } catch (_) {}
+    if (audioCtx && audioCtx.state === "running") {
+      try { audioCtx.suspend(); } catch (_) {}
+    }
+  };
+  const resumeFromHide = () => {
+    if (!gamePausedForVisibility) return;
+    gamePausedForVisibility = false;
+    // Не сдвигаем таймеры, если они уже были заморожены рекламой —
+    // там сдвиг произойдёт при resumeGameAfterAd().
+    if (!gamePausedForAd) {
+      const now = Date.now();
+      if (state._adBoostPausedAt && state.adIncomeBoostUntil > 0) {
+        state.adIncomeBoostUntil += now - state._adBoostPausedAt;
       }
-    } else {
-      ysdk.startGameplay();
-      if (state.soundEnabled && bgmStarted && bgmAudio && !bgmSuspendedForAd) {
-        try { const p = bgmAudio.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+      if (state._adFastPausedAt && state.adFastSpawnUntil > 0) {
+        state.adFastSpawnUntil += now - state._adFastPausedAt;
+      }
+      delete state._adBoostPausedAt;
+      delete state._adFastPausedAt;
+      delete state._adBoostFrozenLeftMs;
+    }
+    try { ysdk.startGameplay(); } catch (_) {}
+    if (state.soundEnabled && bgmStarted && audioCtx && !bgmSuspendedForAd) {
+      if (audioCtx.state === "suspended") {
+        try { audioCtx.resume(); } catch (_) {}
       }
     }
+  };
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pauseForHide();
+    else resumeFromHide();
   });
+  window.addEventListener("blur", pauseForHide);
+  window.addEventListener("focus", resumeFromHide);
+  window.addEventListener("pagehide", pauseForHide);
+  window.addEventListener("pageshow", resumeFromHide);
+
   window.addEventListener("beforeunload", () => {
     saveGame();
     ysdk.saveCloudData();
     ysdk.stopGameplay();
   });
 
+  // П. 1.6.2.7: запрет выделения, контекстного меню, drag не-игровых элементов.
   document.addEventListener("contextmenu", (e) => e.preventDefault());
+  document.addEventListener("selectstart", (e) => e.preventDefault());
+  document.addEventListener("dragstart", (e) => {
+    // Разрешаем перетаскивание только мемов (.meme). Иначе браузер пытается
+    // утащить картинку/текст и блокирует наш drag-merge.
+    if (!e.target || !e.target.closest || !e.target.closest(".meme")) {
+      e.preventDefault();
+    }
+  });
+
+  // П. 1.10.2: гасим жесты прокрутки. touch-action: none на html/body уже стоит,
+  // но iOS до сих пор иногда инициирует bounce — здесь добавочный страховочный слой.
   document.addEventListener("touchmove", (e) => {
+    if (e.touches && e.touches.length > 1) { e.preventDefault(); return; }
     if (!e.target.closest(".app")) e.preventDefault();
   }, { passive: false });
-  document.addEventListener("selectstart", (e) => e.preventDefault());
+  document.addEventListener("wheel", (e) => {
+    if (e.target && e.target.closest && e.target.closest(".scrollable")) return;
+    e.preventDefault();
+  }, { passive: false });
 
-  if (navigator.mediaSession) {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: text("title"),
-      artist: "Brainrot Merge"
-    });
-    navigator.mediaSession.setActionHandler("play", () => {});
-    navigator.mediaSession.setActionHandler("pause", () => {});
-  }
-
+  // П. 1.6.2.5: НЕ регистрируем navigator.mediaSession — иначе ОС показывает
+  // системный плеер для нашей вкладки. BGM играет через AudioBufferSourceNode,
+  // система его за «медиа» не считает.
 }
 
-// Auto-scale: fit app to viewport without scrollbars
+// Auto-scale: подгоняем приложение под вьюпорт только на широких экранах
+// (когда экраны достаточно большие для полного 3-колоночного макета).
+// На мобильных вместо масштабирования работает внутренний скролл `.app`,
+// иначе текст становится нечитаемо мелким и панель обучения уходит вниз.
 function fitToScreen() {
   const app = document.querySelector(".app");
   if (!app) return;
+  // Сбрасываем предыдущую трансформацию.
   app.style.transform = "";
   app.style.transformOrigin = "top center";
+  if (window.innerWidth < 1100) return; // мобильные/планшеты — без скейла
   void app.offsetHeight;
   const sh = app.scrollHeight;
   const vh = window.innerHeight;
   if (sh > vh + 2) {
-    app.style.transform = "scale(" + (vh / sh) + ")";
+    const k = vh / sh;
+    if (k >= 0.78) app.style.transform = "scale(" + k + ")";
   }
 }
 window.addEventListener("resize", fitToScreen);
