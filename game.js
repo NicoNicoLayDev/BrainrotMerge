@@ -147,7 +147,7 @@ const INTERSTITIAL_COOLDOWN_MS = 180 * 1000;
 const SAVE_KEY = "brainrot_merge_save_v3";
 const SAVE_KEY_LEGACY = "brainrot_merge_save_v2";
 const ASSETS = {
-  memeIcons: Array.from({ length: 12 }, (_, i) => `assets/sprites/meme_lv${i + 1}.png`),
+  memeIcons: Array.from({ length: 12 }, (_, i) => `assets/sprites/meme_lv${i + 1}.webp`),
   sounds: {
     spawn: "assets/sfx/spawn.mp3",
     merge: "assets/sfx/merge.mp3",
