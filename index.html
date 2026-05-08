@@ -19,60 +19,70 @@
     <span class="bg-orb bg-orb--lime"></span>
     <span class="bg-grid"></span>
     <span class="bg-stars"></span>
+    <span class="bg-glare"></span>
   </div>
 
   <div class="app">
     <header class="topbar">
-      <div class="topbar__brand">
-        <span class="topbar__logo" aria-hidden="true">🧠</span>
-        <h1 id="titleText">Брейнрот Мемы: Эволюция</h1>
+      <div class="brand">
+        <span class="brand__logo" aria-hidden="true">🧠</span>
+        <h1 id="titleText" class="brand__title">Брейнрот Мемы: Эволюция</h1>
       </div>
-      <div class="stats">
-        <div class="stat stat--likes">
-          <span class="stat-sticker" aria-hidden="true">❤️</span>
-          <span id="likesLabel" class="stat-label">Лайки</span>
-          <strong id="likesValue" class="stat-value">0</strong>
-        </div>
-        <div class="stat stat--income">
-          <span class="stat-sticker" aria-hidden="true">📈</span>
-          <span id="incomeLabel" class="stat-label">В секунду</span>
-          <strong id="incomeValue" class="stat-value">0</strong>
-          <span id="incomeMultHint" class="stat-sub"></span>
-        </div>
-        <div class="stat stat--crit">
-          <span class="stat-sticker" aria-hidden="true">✨</span>
-          <span id="critLabel" class="stat-label">Супер %</span>
-          <strong id="critValue" class="stat-value">0%</strong>
-        </div>
-        <div class="stat stat--top">
-          <span class="stat-sticker" aria-hidden="true">🏆</span>
-          <span id="topLevelLabel" class="stat-label">Топ мем</span>
-          <strong id="topLevelValue" class="stat-value">Lv.1</strong>
-        </div>
-      </div>
+      <button id="soundBtn" type="button" class="sound-btn" aria-label="Звук">
+        <span class="sound-btn__sticker" aria-hidden="true">🔊</span>
+        <span id="soundBtnLabel" class="sound-btn__label">Звук</span>
+      </button>
     </header>
 
-    <main class="main">
-      <aside class="panel guide-panel">
-        <h2 id="guideTitle" class="guide-panel__title">Как играть</h2>
-        <div class="guide-body">
-          <p id="guideP1"></p>
-          <p id="guideP2"></p>
-          <p id="guideP3"></p>
-          <p id="guideP4"></p>
+    <main class="stage">
+      <section class="board-zone">
+        <div class="board-wrap">
+          <div class="grid-wrap">
+            <span class="grid-glow" aria-hidden="true"></span>
+            <div id="board" class="board"></div>
+            <div id="particles" class="particles"></div>
+          </div>
         </div>
-      </aside>
-
-      <section class="playfield">
-        <div class="grid-wrap">
-          <span class="grid-glow" aria-hidden="true"></span>
-          <div id="board" class="board"></div>
-          <div id="particles" class="particles"></div>
-        </div>
+        <aside class="tip-strip" aria-labelledby="guideTitle">
+          <span class="tip-strip__icon" aria-hidden="true">💡</span>
+          <div class="tip-strip__inner">
+            <h2 id="guideTitle" class="tip-strip__title">Как играть</h2>
+            <div class="tip-strip__body scrollable">
+              <p id="guideP1"></p>
+              <p id="guideP2"></p>
+              <p id="guideP3"></p>
+              <p id="guideP4"></p>
+            </div>
+          </div>
+        </aside>
       </section>
 
-      <aside class="sidebar">
-        <div class="panel controls">
+      <aside class="dock scrollable" aria-label="Панель действий">
+        <section class="stats" aria-label="Статистика">
+          <div class="stat stat--likes">
+            <span class="stat-sticker" aria-hidden="true">❤️</span>
+            <span id="likesLabel" class="stat-label">Лайки</span>
+            <strong id="likesValue" class="stat-value">0</strong>
+          </div>
+          <div class="stat stat--income">
+            <span class="stat-sticker" aria-hidden="true">📈</span>
+            <span id="incomeLabel" class="stat-label">В секунду</span>
+            <strong id="incomeValue" class="stat-value">0</strong>
+            <span id="incomeMultHint" class="stat-sub"></span>
+          </div>
+          <div class="stat stat--crit">
+            <span class="stat-sticker" aria-hidden="true">✨</span>
+            <span id="critLabel" class="stat-label">Супер %</span>
+            <strong id="critValue" class="stat-value">0%</strong>
+          </div>
+          <div class="stat stat--top">
+            <span class="stat-sticker" aria-hidden="true">🏆</span>
+            <span id="topLevelLabel" class="stat-label">Топ мем</span>
+            <strong id="topLevelValue" class="stat-value">Lv.1</strong>
+          </div>
+        </section>
+
+        <section class="dock-actions">
           <button id="spawnFreeBtn" type="button" class="btn btn-kid primary">
             <span class="btn-sticker" aria-hidden="true">🐱</span>
             <span class="btn-main">
@@ -80,72 +90,75 @@
               <span class="btn-sub"><span id="spawnFreeSub">подождать</span> <span id="cooldownValue">5.0</span> сек</span>
             </span>
           </button>
-          <button id="spawnPaidBtn" type="button" class="btn btn-kid">
+          <button id="spawnPaidBtn" type="button" class="btn btn-kid gold">
             <span class="btn-sticker" aria-hidden="true">💸</span>
             <span class="btn-main">
               <span id="spawnPaidLabel" class="btn-title">Купить мем</span>
               <span class="btn-sub"><span id="spawnPriceValue">10</span> <span id="spawnPaidSub">лайки</span></span>
             </span>
           </button>
-          <div class="mini-row">
-            <button id="adBoostBtn" type="button" class="btn btn-kid accent btn-ad-col">
-              <span class="btn-ad-row"><span class="btn-sticker sm" aria-hidden="true">📺</span><span id="adBoostLabel" class="btn-title sm">Реклама: ×2 лайков 30 сек</span></span>
-              <span id="adBoostTimer" class="btn-ad-countdown" hidden></span>
-            </button>
-            <button id="adSpawnBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm" aria-hidden="true">📺</span><span id="adSpawnLabel" class="btn-title sm">Реклама: +5 мемов</span></button>
-          </div>
-          <div class="mini-row">
-            <button id="adInstantBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm" aria-hidden="true">📺</span><span id="adInstantLabel" class="btn-title sm">Реклама: Турбо 5 сек (кулдаун 0,3с)</span></button>          
-          </div>
-          <div class="mini-row">
-          <button id="soundBtn" type="button" class="btn btn-kid ghost"><span class="btn-sticker sm">🔊</span><span id="soundBtnLabel" class="btn-title sm">Звук</span></button>
-        </div>
-        </div>
+        </section>
 
-        <div class="panel shop">
-          <h2 id="shopTitle">Суперсилы</h2>
-          <div class="upgrade-group upgrade-group--income">
+        <section class="dock-ads" aria-label="Бонусы за рекламу">
+          <button id="adBoostBtn" type="button" class="btn btn-kid accent btn-ad-col">
+            <span class="btn-ad-row">
+              <span class="btn-sticker sm" aria-hidden="true">📺</span>
+              <span id="adBoostLabel" class="btn-title sm">Реклама: ×2 лайков 30 сек</span>
+            </span>
+            <span id="adBoostTimer" class="btn-ad-countdown" hidden></span>
+          </button>
+          <button id="adSpawnBtn" type="button" class="btn btn-kid accent">
+            <span class="btn-sticker sm" aria-hidden="true">📺</span>
+            <span id="adSpawnLabel" class="btn-title sm">Реклама: +5 мемов</span>
+          </button>
+          <button id="adInstantBtn" type="button" class="btn btn-kid accent">
+            <span class="btn-sticker sm" aria-hidden="true">📺</span>
+            <span id="adInstantLabel" class="btn-title sm">Реклама: Турбо 5 сек (кулдаун 0,3с)</span>
+          </button>
+        </section>
+
+        <section class="shop">
+          <h2 id="shopTitle" class="shop__title">Суперсилы</h2>
+          <article class="upgrade-group upgrade-group--income">
             <div class="upgrade-head">
               <span class="upgrade-sticker" aria-hidden="true">💰</span>
               <h3 id="incomeUpgradeTitle">Больше лайков</h3>
             </div>
             <p id="incomeBonusPreview" class="bonus-preview"></p>
             <button id="buyIncomeUpgradeBtn" type="button" class="btn btn-kid shop-buy">
-              <span class="btn-sticker sm">⬆️</span>
+              <span class="btn-sticker sm" aria-hidden="true">⬆️</span>
               <span id="buyIncomeLabel">Улучшить</span>
               <span class="price-tag" id="incomeUpgradePrice">280</span>
             </button>
-            <small id="incomeUpgradeLevel">Уровень: 0/10</small>
-          </div>
-          <div class="upgrade-group upgrade-group--cooldown">
+            <small id="incomeUpgradeLevel" class="upgrade-level">Уровень: 0/10</small>
+          </article>
+          <article class="upgrade-group upgrade-group--cooldown">
             <div class="upgrade-head">
               <span class="upgrade-sticker" aria-hidden="true">⏱️</span>
               <h3 id="cooldownUpgradeTitle">Быстрее кнопка</h3>
             </div>
             <p id="cooldownBonusPreview" class="bonus-preview"></p>
             <button id="buyCooldownUpgradeBtn" type="button" class="btn btn-kid shop-buy">
-              <span class="btn-sticker sm">⬆️</span>
+              <span class="btn-sticker sm" aria-hidden="true">⬆️</span>
               <span id="buyCooldownLabel">Улучшить</span>
               <span class="price-tag" id="cooldownUpgradePrice">260</span>
             </button>
-            <small id="cooldownUpgradeLevel">Уровень: 0/10</small>
-          </div>
-          <div class="upgrade-group upgrade-group--crit">
+            <small id="cooldownUpgradeLevel" class="upgrade-level">Уровень: 0/10</small>
+          </article>
+          <article class="upgrade-group upgrade-group--crit">
             <div class="upgrade-head">
               <span class="upgrade-sticker" aria-hidden="true">🌟</span>
               <h3 id="critUpgradeTitle">Супер слияние</h3>
             </div>
             <p id="critBonusPreview" class="bonus-preview"></p>
             <button id="buyCritUpgradeBtn" type="button" class="btn btn-kid shop-buy">
-              <span class="btn-sticker sm">⬆️</span>
+              <span class="btn-sticker sm" aria-hidden="true">⬆️</span>
               <span id="buyCritLabel">Улучшить</span>
               <span class="price-tag" id="critUpgradePrice">320</span>
             </button>
-            <small id="critUpgradeLevel">Уровень: 0/10</small>
-          </div>
-        </div>
-
-        
+            <small id="critUpgradeLevel" class="upgrade-level">Уровень: 0/10</small>
+          </article>
+        </section>
       </aside>
     </main>
 
@@ -154,7 +167,10 @@
       <p id="offlineText">Пока тебя не было, набежали лайки.</p>
       <div class="offline-actions">
         <button id="offlineClaimBtn" type="button" class="btn btn-kid primary">Забрать</button>
-        <button id="offlineClaimAdBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm">📺</span> <span id="offlineClaimAdLabel">В два раза больше</span></button>
+        <button id="offlineClaimAdBtn" type="button" class="btn btn-kid accent">
+          <span class="btn-sticker sm" aria-hidden="true">📺</span>
+          <span id="offlineClaimAdLabel">В два раза больше</span>
+        </button>
       </div>
     </section>
 
