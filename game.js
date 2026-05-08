@@ -735,15 +735,6 @@ function renderBoard(animTarget = -1, isCrit = false) {
     const cell = document.createElement("div");
     cell.className = "cell";
     cell.dataset.index = i;
-    cell.addEventListener("dragover", (e) => e.preventDefault());
-    cell.addEventListener("dragenter", () => highlightDrop(Number(el.board.dataset.dragFrom), i));
-    cell.addEventListener("dragleave", () => cell.classList.remove("drop-ok", "drop-bad"));
-    cell.addEventListener("drop", (e) => {
-      e.preventDefault();
-      const from = Number(e.dataTransfer.getData("text/plain"));
-      cell.classList.remove("drop-ok", "drop-bad");
-      mergeMemes(from, i);
-    });
 
     const meme = state.board[i];
     if (meme) {
@@ -755,28 +746,131 @@ function renderBoard(animTarget = -1, isCrit = false) {
       if (animTarget === i) item.classList.add("merge-pop");
       if (animTarget === i) item.classList.add("merge-evolve");
       if (animTarget === i && isCrit) item.classList.add("crit");
-      item.draggable = true;
       item.style.background = `linear-gradient(145deg, ${levelData.color}, #111)`;
-      item.style.transform = `rotate(${(Math.random() - 0.5) * meme.level * 0.5}deg)`;
+      const idleRotate = (Math.random() - 0.5) * meme.level * 0.5;
+      item.dataset.idleRotate = String(idleRotate);
+      item.style.setProperty("--idle-rotate", `${idleRotate}deg`);
       const iconSrc = loadedMemeIcons.get(meme.level);
       const memeName = getMemeName(levelData);
       item.innerHTML = iconSrc
-        ? `<img class="meme-icon" src="${iconSrc}" alt="${memeName}"><div class="meme-meta"><div class="label">${memeName}</div><div class="level">Lv.${meme.level}</div></div>`
+        ? `<img class="meme-icon" src="${iconSrc}" alt="${memeName}" draggable="false"><div class="meme-meta"><div class="label">${memeName}</div><div class="level">Lv.${meme.level}</div></div>`
         : `<div class="emoji">${levelData.emoji}</div><div class="meme-meta"><div class="label">${memeName}</div><div class="level">Lv.${meme.level}</div></div>`;
-      item.addEventListener("click", () => tryTapMerge(i));
-      item.addEventListener("dragstart", (e) => {
-        el.board.dataset.dragFrom = String(i);
-        e.dataTransfer.setData("text/plain", String(i));
-      });
-      item.addEventListener("dragend", () => {
-        delete el.board.dataset.dragFrom;
-        el.board.querySelectorAll(".cell").forEach((c) => c.classList.remove("drop-ok", "drop-bad"));
-      });
+      attachMemeDrag(item, i);
       cell.appendChild(item);
     }
     el.board.appendChild(cell);
   }
   renderUI();
+}
+
+/**
+ * Pointer-based drag-and-drop, works on both desktop (mouse) and touch.
+ * HTML5 drag-and-drop does not fire touch events on mobile, hence the custom
+ * implementation. A small movement threshold separates a tap (click) from a
+ * drag so that tap-to-select still works.
+ */
+function attachMemeDrag(item, index) {
+  const DRAG_THRESHOLD = 6;
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let dragging = false;
+  let lastTargetCell = null;
+
+  function clearDropHints() {
+    el.board.querySelectorAll(".cell").forEach((c) => c.classList.remove("drop-ok", "drop-bad"));
+  }
+
+  function findCellAt(clientX, clientY) {
+    const prevPe = item.style.pointerEvents;
+    item.style.pointerEvents = "none";
+    const elAt = document.elementFromPoint(clientX, clientY);
+    item.style.pointerEvents = prevPe;
+    if (!elAt || !elAt.closest) return null;
+    const cell = elAt.closest(".cell");
+    if (!cell || cell.parentElement !== el.board) return null;
+    return cell;
+  }
+
+  function updateDragVisual(dx, dy) {
+    item.style.transform = `translate(${dx}px, ${dy}px) scale(1.06) rotate(2deg)`;
+  }
+
+  function onPointerMove(e) {
+    if (e.pointerId !== pointerId) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (!dragging && Math.hypot(dx, dy) >= DRAG_THRESHOLD) {
+      dragging = true;
+      item.classList.add("dragging");
+      item.style.transition = "none";
+      item.style.zIndex = "20";
+    }
+    if (!dragging) return;
+    e.preventDefault();
+    updateDragVisual(dx, dy);
+    const cellAt = findCellAt(e.clientX, e.clientY);
+    if (cellAt !== lastTargetCell) {
+      clearDropHints();
+      lastTargetCell = cellAt;
+      if (cellAt) {
+        const tIdx = Number(cellAt.dataset.index);
+        if (tIdx !== index) highlightDrop(index, tIdx);
+      }
+    }
+  }
+
+  function endDrag(e) {
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+    document.removeEventListener("pointercancel", onPointerCancel);
+    item.classList.remove("dragging");
+    item.style.transition = "";
+    item.style.transform = "";
+    item.style.zIndex = "";
+    clearDropHints();
+    pointerId = null;
+    lastTargetCell = null;
+  }
+
+  function onPointerUp(e) {
+    if (e.pointerId !== pointerId) return;
+    const wasDragging = dragging;
+    dragging = false;
+    if (wasDragging) {
+      const cellAt = findCellAt(e.clientX, e.clientY);
+      endDrag(e);
+      if (cellAt) {
+        const tIdx = Number(cellAt.dataset.index);
+        if (tIdx !== index) mergeMemes(index, tIdx);
+      }
+    } else {
+      endDrag(e);
+      tryTapMerge(index);
+    }
+  }
+
+  function onPointerCancel(e) {
+    if (e.pointerId !== pointerId) return;
+    dragging = false;
+    endDrag(e);
+  }
+
+  item.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse") return;
+    if (pointerId !== null) return;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    dragging = false;
+    document.addEventListener("pointermove", onPointerMove, { passive: false });
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerCancel);
+    e.preventDefault();
+  });
+
+  // Block native HTML5 drag (browser default for images / elements with text).
+  item.addEventListener("dragstart", (e) => e.preventDefault());
 }
 
 function renderUI() {
@@ -881,6 +975,11 @@ function applyLocaleTexts() {
   el.buyCooldownLabel.textContent = text("buy");
   el.buyCritLabel.textContent = text("buy");
   el.offlineTitle.textContent = text("offlineTitle");
+  if (state.pendingOfflineGain > 0) {
+    el.offlineText.textContent = `${text("offlineText")} +${formatInt(state.pendingOfflineGain)}`;
+  } else {
+    el.offlineText.textContent = text("offlineText");
+  }
   el.offlineClaimBtn.textContent = text("claim");
   el.offlineClaimAdBtn.textContent = `📺 ${text("claimX2")}`;
 }
@@ -1452,26 +1551,56 @@ async function bootstrap() {
   // система его за «медиа» не считает.
 }
 
-// Auto-scale: подгоняем приложение под вьюпорт только на широких экранах
-// (когда экраны достаточно большие для полного 3-колоночного макета).
-// На мобильных вместо масштабирования работает внутренний скролл `.app`,
-// иначе текст становится нечитаемо мелким и панель обучения уходит вниз.
+// Auto-scale: уменьшаем приложение до размеров вьюпорта на всех устройствах,
+// чтобы интерфейс не выходил за пределы экрана и не появлялись скроллбары.
+// Перед измерением сбрасываем предыдущий transform, иначе scrollWidth /
+// scrollHeight отдадут уже отмасштабированные значения и подгонка съедет.
+let _fitting = false;
 function fitToScreen() {
+  if (_fitting) return;
+  _fitting = true;
   const app = document.querySelector(".app");
-  if (!app) return;
-  // Сбрасываем предыдущую трансформацию.
+  if (!app) { _fitting = false; return; }
+
   app.style.transform = "";
-  app.style.transformOrigin = "top center";
-  if (window.innerWidth < 1100) return; // мобильные/планшеты — без скейла
+  app.style.transformOrigin = "top left";
+  app.style.position = "";
+  app.style.left = "";
+  app.style.top = "";
+  app.style.width = "";
+  app.style.height = "";
+
   void app.offsetHeight;
+
+  const sw = app.scrollWidth;
   const sh = app.scrollHeight;
+  const vw = window.innerWidth;
   const vh = window.innerHeight;
-  if (sh > vh + 2) {
-    const k = vh / sh;
-    if (k >= 0.78) app.style.transform = "scale(" + k + ")";
+  if (sw <= 0 || sh <= 0) { _fitting = false; return; }
+
+  const kw = vw / sw;
+  const kh = vh / sh;
+  const k = Math.min(1, kw, kh);
+
+  if (k < 0.999) {
+    app.style.position = "absolute";
+    app.style.left = `${Math.max(0, (vw - sw * k) / 2)}px`;
+    app.style.top = `${Math.max(0, (vh - sh * k) / 2)}px`;
+    app.style.transform = `scale(${k})`;
+    app.style.transformOrigin = "top left";
+    app.style.width = `${sw}px`;
+    app.style.height = `${sh}px`;
   }
+  _fitting = false;
 }
 window.addEventListener("resize", fitToScreen);
+window.addEventListener("orientationchange", fitToScreen);
 window.addEventListener("load", fitToScreen);
 
-bootstrap().then(() => { fitToScreen(); });
+bootstrap().then(() => {
+  fitToScreen();
+  // Re-fit after async asset load reflows (icons, fonts) settle.
+  requestAnimationFrame(fitToScreen);
+  setTimeout(fitToScreen, 200);
+  setTimeout(fitToScreen, 800);
+});
