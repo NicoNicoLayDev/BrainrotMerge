@@ -1327,35 +1327,36 @@ body {
   .dock-ads #adInstantBtn { grid-column: 1 / -1; }
 }
 
-/* Планшет — dock уезжает вниз: поле сверху, dock 2-колоночным. */
+/* Планшет — dock уезжает вниз: поле сверху, dock 2-колоночным.
+   Глобальный скролл выключен: .app fixed-height, dock сам скроллится внутри. */
 @media (max-width: 1024px) {
-  .app {
-    height: auto;
-    min-height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    grid-template-rows: auto auto;
-    -webkit-overflow-scrolling: touch;
-  }
   .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px;
+    min-height: 0;
+  }
+  .board-zone {
     display: flex;
     flex-direction: column;
-    grid-template-columns: none;
-    grid-template-rows: none;
-    gap: 10px;
+    gap: 6px;
+    min-height: 0;
   }
-  .board-zone { flex: 0 0 auto; }
   .board-wrap {
     width: 100%;
     display: grid;
     place-items: center;
+    min-height: 0;
   }
   .grid-wrap {
-    width: min(100%, 70vh);
+    width: min(100%, 48vh);
     max-width: 100%;
     height: auto;
     aspect-ratio: 1;
   }
+  /* Гайд-шторку прячем — не хватает вертикали, dock и так покажет всё. */
+  .tip-strip { display: none; }
   .dock {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1364,9 +1365,12 @@ body {
       "act ads"
       "shop shop";
     gap: 8px;
-    overflow-y: visible;
-    max-height: none;
-    flex: 0 0 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    max-height: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
   }
   .stats { grid-area: stats; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .dock-actions { grid-area: act; grid-template-columns: 1fr; }
@@ -1418,9 +1422,9 @@ body {
   .stat-sticker { font-size: 20px; left: 8px; }
   .stat-value { font-size: 16px; }
 
-  .dock-actions { grid-template-columns: 1fr; }
-  .dock-ads { grid-template-columns: 1fr; }
-  .dock-ads #adInstantBtn { grid-column: 1; }
+  .dock-actions { grid-template-columns: 1fr 1fr; }
+  .dock-ads { grid-template-columns: 1fr 1fr; }
+  .dock-ads #adInstantBtn { grid-column: 1 / -1; }
   .shop { grid-template-columns: 1fr; padding: 8px; }
   .shop__title { font-size: 17px; }
   .btn-kid { padding: 9px 12px; gap: 10px; font-size: 15px; border-radius: 16px; }
