@@ -336,7 +336,7 @@ h1 {
 
 .main {
   display: grid;
-  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(440px, 560px);
   gap: 12px;
   flex: 1;
   min-height: 0;
@@ -373,6 +373,7 @@ h1 {
 .guide-panel {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 12px;
 }
 .guide-panel__title {
@@ -680,12 +681,13 @@ h1 {
 /* ---------------- sidebar / shop / controls ---------------- */
 
 .sidebar {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
   min-height: 0;
 }
-.sidebar .panel { flex-shrink: 0; }
+.sidebar .panel { flex-shrink: 0; min-width: 0; }
 .controls { display: grid; gap: 8px; }
 .mini-row { display: grid; gap: 8px; }
 
@@ -861,9 +863,26 @@ h1 {
 }
 .btn-kid.shop-buy {
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   text-align: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+}
+.btn-kid.shop-buy .btn-sticker.sm { font-size: 22px; flex-shrink: 0; }
+.btn-kid.shop-buy > span:not(.btn-sticker):not(.price-tag) {
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+.btn-kid.shop-buy .price-tag {
+  font-size: 13.5px;
+  padding: 2px 8px;
+  margin-left: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0;
 }
 .btn-kid.btn-ad-col {
   flex-direction: column;
@@ -1071,7 +1090,7 @@ h1 {
 }
 
 @media (max-width: 1280px) {
-  .main { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(260px, 320px); gap: 10px; }
+  .main { grid-template-columns: minmax(170px, 200px) minmax(0, 1fr) minmax(380px, 480px); gap: 10px; }
 }
 
 @media (max-width: 1100px) {
@@ -1080,7 +1099,7 @@ h1 {
     grid-template-areas: "play side" "guide side";
   }
   .playfield { grid-area: play; }
-  .sidebar { grid-area: side; }
+  .sidebar { grid-area: side; grid-template-columns: 1fr; }
   .guide-panel {
     grid-area: guide;
     flex-direction: row;
