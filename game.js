@@ -981,7 +981,11 @@ function applyLocaleTexts() {
     el.offlineText.textContent = text("offlineText");
   }
   el.offlineClaimBtn.textContent = text("claim");
-  el.offlineClaimAdBtn.textContent = `📺 ${text("claimX2")}`;
+  if (el.offlineClaimAdLabel) {
+    el.offlineClaimAdLabel.textContent = text("claimX2");
+  } else {
+    el.offlineClaimAdBtn.textContent = `📺 ${text("claimX2")}`;
+  }
 }
 
 function flashBoard() {

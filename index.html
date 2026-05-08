@@ -61,15 +61,6 @@
           <p id="guideP3"></p>
           <p id="guideP4"></p>
         </div>
-        <!--<button id="resetProgressBtn" type="button" class="btn btn-kid btn-danger">Сбросить всё</button>-->
-        <section id="offlinePanel" class="panel offline hidden">
-          <h2 id="offlineTitle">Ты отсутствовал!</h2>
-          <p id="offlineText">Пока тебя не было, набежали лайки.</p>
-          <div class="offline-actions">
-            <button id="offlineClaimBtn" type="button" class="btn btn-kid primary">Забрать</button>
-            <button id="offlineClaimAdBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm">📺</span> В два раза больше</button>
-          </div>
-        </section>
       </aside>
 
       <section class="playfield">
@@ -157,6 +148,15 @@
         
       </aside>
     </main>
+
+    <section id="offlinePanel" class="offline hidden" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
+      <h2 id="offlineTitle">Ты отсутствовал!</h2>
+      <p id="offlineText">Пока тебя не было, набежали лайки.</p>
+      <div class="offline-actions">
+        <button id="offlineClaimBtn" type="button" class="btn btn-kid primary">Забрать</button>
+        <button id="offlineClaimAdBtn" type="button" class="btn btn-kid accent"><span class="btn-sticker sm">📺</span> <span id="offlineClaimAdLabel">В два раза больше</span></button>
+      </div>
+    </section>
 
     <div id="toast" class="toast"></div>
   </div>
