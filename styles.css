@@ -1326,10 +1326,32 @@ body {
 
 /* Планшет — dock уезжает вниз: поле сверху, dock 2-колоночным. */
 @media (max-width: 1024px) {
+  .app {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    grid-template-rows: auto auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .stage {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    grid-template-rows: none;
     gap: 10px;
+  }
+  .board-zone { flex: 0 0 auto; }
+  .board-wrap {
+    width: 100%;
+    display: grid;
+    place-items: center;
+  }
+  .grid-wrap {
+    width: min(100%, 70vh);
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1;
   }
   .dock {
     display: grid;
@@ -1339,8 +1361,9 @@ body {
       "act ads"
       "shop shop";
     gap: 8px;
-    overflow-y: auto;
+    overflow-y: visible;
     max-height: none;
+    flex: 0 0 auto;
   }
   .stats { grid-area: stats; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .dock-actions { grid-area: act; grid-template-columns: 1fr; }
@@ -1412,16 +1435,38 @@ body {
 
 /* Мобильный landscape — компактный режим без табличной разбивки гайда. */
 @media (max-height: 500px) and (orientation: landscape) {
-  .app { padding: 4px 8px 6px; gap: 4px; }
+  .app {
+    padding: 4px 8px 6px;
+    gap: 4px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
   .topbar { padding: 4px 10px; gap: 8px; border-radius: 16px; }
   .brand__logo { font-size: 20px; }
   .brand__title { font-size: 15px; }
   .sound-btn { padding: 4px 10px; font-size: 12px; gap: 5px; }
   .sound-btn__sticker { font-size: 14px; }
 
-  .stage { grid-template-columns: minmax(0, 1fr) clamp(220px, 28vw, 280px); grid-template-rows: 1fr; gap: 6px; }
-  .board-zone { gap: 4px; }
-  .grid-wrap { padding: 6px; border-radius: 16px; }
+  .stage {
+    display: grid;
+    flex-direction: row;
+    grid-template-columns: minmax(0, 1fr) clamp(220px, 28vw, 280px);
+    grid-template-rows: 1fr;
+    gap: 6px;
+    min-height: 0;
+  }
+  .board-zone { gap: 4px; flex: 1 1 auto; min-height: 0; }
+  .board-wrap { width: auto; height: 100%; }
+  .grid-wrap {
+    padding: 6px;
+    border-radius: 16px;
+    width: auto;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+  }
   .grid-wrap::before { border-radius: 18px; }
   .board { gap: 4px; }
   .cell { border-radius: 10px; }
