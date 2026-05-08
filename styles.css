@@ -1322,6 +1322,9 @@ body {
 /* 1280px — стандартная YG-iframe ширина. Сужаем dock. */
 @media (max-width: 1280px) {
   .stage { grid-template-columns: minmax(0, 1fr) clamp(300px, 28vw, 380px); gap: 10px; }
+  .dock-actions { grid-template-columns: 1fr; }
+  .dock-ads { grid-template-columns: 1fr 1fr; }
+  .dock-ads #adInstantBtn { grid-column: 1 / -1; }
 }
 
 /* Планшет — dock уезжает вниз: поле сверху, dock 2-колоночным. */
