@@ -29,6 +29,7 @@ const I18N = {
     adsUnavailable: "Реклама недоступна",
     soundOn: "вкл 🔊",
     soundOff: "выкл 🔇",
+    langSwitched: "Язык: Русский",
     topLevel: "Топ мем",
     guideTitle: "Как играть",
     guideP1: "Поле 4×4. Соедини два одинаковых мема — получится мем на уровень выше и лайки.",
@@ -44,6 +45,7 @@ const I18N = {
     claimX2: "В два раза больше (видео)",
     spawnFree: "Новый мем",
     spawnFreeSub: "подождать",
+    spawnFreeUnit: "сек",
     spawnPaid: "Купить мем",
     spawnPaidSub: "лайки",
     adBoostShort: "Реклама: ×2 лайков на 30 сек",
@@ -80,6 +82,7 @@ const I18N = {
     adsUnavailable: "Ads unavailable",
     soundOn: "on 🔊",
     soundOff: "off 🔇",
+    langSwitched: "Language: English",
     topLevel: "Top meme",
     guideTitle: "How to play",
     guideP1: "4×4 board. Merge two same memes to get a higher level and likes.",
@@ -95,6 +98,7 @@ const I18N = {
     claimX2: "x2 via ad",
     spawnFree: "New meme",
     spawnFreeSub: "wait",
+    spawnFreeUnit: "sec",
     spawnPaid: "Buy meme",
     spawnPaidSub: "likes",
     adBoostShort: "Ad: ×2 likes for 30 sec",
@@ -182,6 +186,8 @@ const state = {
   stickyBonusUntil: 0,
   lastProgressTs: Date.now(),
   locale: "ru",
+  /** Если пользователь выбрал язык вручную — не даём выбору SDK его перебивать. */
+  localeOverridden: false,
   playerName: "Игрок",
   lastVisitTs: Date.now(),
   yandexReady: false,
@@ -221,12 +227,36 @@ function getSdkUiLang() {
 }
 
 function syncLocaleFromSdk() {
+  if (state.localeOverridden) return;
   const next = getSdkUiLang();
   if (next == null) return;
   if (next === state.locale) return;
   state.locale = next;
   applyLocaleTexts();
   renderBoard();
+}
+
+function setLocale(next, opts) {
+  const lang = I18N[next] ? next : "ru";
+  const fromUser = opts && opts.fromUser === true;
+  if (fromUser) state.localeOverridden = true;
+  if (lang === state.locale) {
+    if (fromUser) saveGame();
+    return;
+  }
+  state.locale = lang;
+  applyLocaleTexts();
+  renderBoard();
+  if (fromUser) {
+    saveGame();
+    toast(text("langSwitched"));
+  }
+}
+
+function toggleLocale() {
+  const next = state.locale === "ru" ? "en" : "ru";
+  setLocale(next, { fromUser: true });
+  playSoundEffect("click", [660, 0.05, "square", 0.04]);
 }
 
 function toast(message) {
@@ -655,6 +685,7 @@ function safeSaveData() {
     stickyBonusUntil: state.stickyBonusUntil,
     lastProgressTs: state.lastProgressTs,
     locale: state.locale,
+    localeOverridden: state.localeOverridden,
     playerName: state.playerName,
     lastVisitTs: state.lastVisitTs,
     yandexReady: state.yandexReady,
@@ -885,6 +916,7 @@ function renderUI() {
   el.spawnPriceValue.textContent = formatInt(state.paidSpawnPrice);
   el.topLevelValue.textContent = `Lv.${state.topLevelReached}`;
   if (el.soundBtnLabel) el.soundBtnLabel.textContent = state.soundEnabled ? text("soundOn") : text("soundOff");
+  if (el.langBtnLabel) el.langBtnLabel.textContent = state.locale === "en" ? "EN" : "RU";
 
   if (el.incomeMultHint) el.incomeMultHint.textContent = `${text("incomeNow")}${formatMult(getTalentIncomeMult())}`;
 
@@ -948,6 +980,7 @@ function renderUI() {
 function applyLocaleTexts() {
   if (!el.titleText) return;
   try { document.documentElement.lang = state.locale === "en" ? "en" : "ru"; } catch (_) {}
+  if (el.langBtnLabel) el.langBtnLabel.textContent = state.locale === "en" ? "EN" : "RU";
   el.titleText.textContent = text("title");
   try { document.title = text("title"); } catch (_) {}
   el.likesLabel.textContent = text("likesLabel");
@@ -962,6 +995,7 @@ function applyLocaleTexts() {
   if (el.resetProgressBtn) el.resetProgressBtn.textContent = text("resetProgress");
   el.spawnFreeLabel.textContent = text("spawnFree");
   if (el.spawnFreeSub) el.spawnFreeSub.textContent = text("spawnFreeSub");
+  if (el.spawnFreeUnit) el.spawnFreeUnit.textContent = text("spawnFreeUnit");
   el.spawnPaidLabel.textContent = text("spawnPaid");
   if (el.spawnPaidSub) el.spawnPaidSub.textContent = text("spawnPaidSub");
   if (el.adBoostLabel) el.adBoostLabel.textContent = text("adBoostShort");
@@ -1305,6 +1339,10 @@ function bindEvents() {
     renderUI();
   });
 
+  if (el.langBtn) {
+    el.langBtn.addEventListener("click", toggleLocale);
+  }
+
   el.offlineClaimBtn.addEventListener("click", () => {
     state.likes += state.pendingOfflineGain;
     state.pendingOfflineGain = 0;
@@ -1403,6 +1441,7 @@ function cacheElements() {
   el.spawnFreeBtn = $("spawnFreeBtn");
   el.spawnFreeLabel = $("spawnFreeLabel");
   el.spawnFreeSub = $("spawnFreeSub");
+  el.spawnFreeUnit = $("spawnFreeUnit");
   el.spawnPaidBtn = $("spawnPaidBtn");
   el.spawnPaidLabel = $("spawnPaidLabel");
   el.spawnPaidSub = $("spawnPaidSub");
@@ -1415,6 +1454,8 @@ function cacheElements() {
   el.adInstantLabel = $("adInstantLabel");
   el.soundBtn = $("soundBtn");
   el.soundBtnLabel = $("soundBtnLabel");
+  el.langBtn = $("langBtn");
+  el.langBtnLabel = $("langBtnLabel");
   el.shopTitle = $("shopTitle");
   el.incomeUpgradeTitle = $("incomeUpgradeTitle");
   el.cooldownUpgradeTitle = $("cooldownUpgradeTitle");

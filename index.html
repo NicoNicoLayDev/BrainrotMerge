@@ -28,13 +28,31 @@
         <span class="brand__logo" aria-hidden="true">🧠</span>
         <h1 id="titleText" class="brand__title">Брейнрот Мемы: Эволюция</h1>
       </div>
-      <button id="soundBtn" type="button" class="sound-btn" aria-label="Звук">
-        <span class="sound-btn__sticker" aria-hidden="true">🔊</span>
-        <span id="soundBtnLabel" class="sound-btn__label">Звук</span>
-      </button>
+      <div class="topbar-actions">
+        <button id="langBtn" type="button" class="sound-btn lang-btn" aria-label="Язык / Language">
+          <span class="sound-btn__sticker" aria-hidden="true">🌐</span>
+          <span id="langBtnLabel" class="sound-btn__label">RU</span>
+        </button>
+        <button id="soundBtn" type="button" class="sound-btn" aria-label="Звук">
+          <span class="sound-btn__sticker" aria-hidden="true">🔊</span>
+          <span id="soundBtnLabel" class="sound-btn__label">Звук</span>
+        </button>
+      </div>
     </header>
 
     <main class="stage">
+      <aside class="tip-strip tip-strip--side scrollable" aria-labelledby="guideTitle">
+        <div class="tip-strip__head">
+          <span class="tip-strip__icon" aria-hidden="true">💡</span>
+          <h2 id="guideTitle" class="tip-strip__title">Как играть</h2>
+        </div>
+        <div class="tip-strip__body">
+          <p id="guideP1"></p>
+          <p id="guideP2"></p>
+          <p id="guideP3"></p>
+          <p id="guideP4"></p>
+        </div>
+      </aside>
       <section class="board-zone">
         <div class="board-wrap">
           <div class="grid-wrap">
@@ -43,18 +61,6 @@
             <div id="particles" class="particles"></div>
           </div>
         </div>
-        <aside class="tip-strip" aria-labelledby="guideTitle">
-          <span class="tip-strip__icon" aria-hidden="true">💡</span>
-          <div class="tip-strip__inner">
-            <h2 id="guideTitle" class="tip-strip__title">Как играть</h2>
-            <div class="tip-strip__body scrollable">
-              <p id="guideP1"></p>
-              <p id="guideP2"></p>
-              <p id="guideP3"></p>
-              <p id="guideP4"></p>
-            </div>
-          </div>
-        </aside>
       </section>
 
       <aside class="dock scrollable" aria-label="Панель действий">
@@ -87,7 +93,7 @@
             <span class="btn-sticker" aria-hidden="true">🐱</span>
             <span class="btn-main">
               <span id="spawnFreeLabel" class="btn-title">Новый мем</span>
-              <span class="btn-sub"><span id="spawnFreeSub">подождать</span> <span id="cooldownValue">5.0</span> сек</span>
+              <span class="btn-sub"><span id="spawnFreeSub">подождать</span> <span id="cooldownValue">5.0</span> <span id="spawnFreeUnit">сек</span></span>
             </span>
           </button>
           <button id="spawnPaidBtn" type="button" class="btn btn-kid gold">
