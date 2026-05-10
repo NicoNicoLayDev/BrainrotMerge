@@ -1596,6 +1596,31 @@ async function bootstrap() {
   // система его за «медиа» не считает.
 }
 
+// Sizes the .grid-wrap (board container) to a perfect square equal to
+// min(boardWrap.width, boardWrap.height). CSS aspect-ratio + max-width/max-height
+// is unreliable across browsers (Yandex, older Chromium), so we set explicit
+// pixel sizes via JS. Called from fitToScreen + ResizeObserver.
+let _boardRO = null;
+function sizeBoard() {
+  const wrap = document.querySelector(".board-wrap");
+  const grid = document.querySelector(".grid-wrap");
+  if (!wrap || !grid) return;
+  const r = wrap.getBoundingClientRect();
+  const side = Math.max(0, Math.floor(Math.min(r.width, r.height)));
+  if (side <= 0) return;
+  grid.style.width = side + "px";
+  grid.style.height = side + "px";
+  grid.style.maxWidth = side + "px";
+  grid.style.maxHeight = side + "px";
+}
+function ensureBoardObserver() {
+  if (_boardRO) return;
+  const wrap = document.querySelector(".board-wrap");
+  if (!wrap || typeof ResizeObserver === "undefined") return;
+  _boardRO = new ResizeObserver(() => sizeBoard());
+  _boardRO.observe(wrap);
+}
+
 // Auto-scale: уменьшаем приложение до размеров вьюпорта на всех устройствах,
 // чтобы интерфейс не выходил за пределы экрана и не появлялись скроллбары.
 // Перед измерением сбрасываем предыдущий transform, иначе scrollWidth /
@@ -1649,16 +1674,19 @@ function fitToScreen() {
     app.style.width = `${sw}px`;
     app.style.height = `${sh}px`;
   }
+  sizeBoard();
   _fitting = false;
 }
-window.addEventListener("resize", fitToScreen);
-window.addEventListener("orientationchange", fitToScreen);
-window.addEventListener("load", fitToScreen);
+window.addEventListener("resize", () => { fitToScreen(); sizeBoard(); });
+window.addEventListener("orientationchange", () => { fitToScreen(); sizeBoard(); });
+window.addEventListener("load", () => { fitToScreen(); sizeBoard(); });
 
 bootstrap().then(() => {
+  ensureBoardObserver();
   fitToScreen();
+  sizeBoard();
   // Re-fit after async asset load reflows (icons, fonts) settle.
-  requestAnimationFrame(fitToScreen);
-  setTimeout(fitToScreen, 200);
-  setTimeout(fitToScreen, 800);
+  requestAnimationFrame(() => { fitToScreen(); sizeBoard(); });
+  setTimeout(() => { fitToScreen(); sizeBoard(); }, 200);
+  setTimeout(() => { fitToScreen(); sizeBoard(); }, 800);
 });
