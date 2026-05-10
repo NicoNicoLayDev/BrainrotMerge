@@ -297,11 +297,28 @@ body {
 .sound-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
 .sound-btn:active { transform: translateY(1px) scale(0.98); }
 
-/* ---------------- stage (board + dock) ---------------- */
+/* ---------------- topbar actions cluster (sound + lang) ---------------- */
+
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.lang-btn .sound-btn__label {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  min-width: 1.6em;
+  text-align: center;
+}
+
+/* ---------------- stage (tips + board + dock) ---------------- */
 
 .stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(320px, 30vw, 420px);
+  grid-template-columns: clamp(180px, 18vw, 240px) minmax(0, 1fr) clamp(320px, 30vw, 420px);
   gap: 12px;
   min-height: 0;
   min-width: 0;
@@ -323,6 +340,7 @@ body {
   place-items: center;
   min-height: 0;
   min-width: 0;
+  container-type: size;
 }
 .grid-wrap {
   position: relative;
@@ -335,9 +353,10 @@ body {
   border-radius: 26px;
   padding: 10px;
   overflow: hidden;
-  width: auto;
-  height: 100%;
   aspect-ratio: 1;
+  /* Гарантируем, что поле всегда остаётся квадратом и влезает в колонку по обоим измерениям. */
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
   max-width: 100%;
   max-height: 100%;
   box-shadow:
@@ -607,7 +626,7 @@ body {
   animation: ringExpand 0.6s ease-out forwards;
 }
 
-/* ---------------- tip strip (under board) ---------------- */
+/* ---------------- tip strip (left column / under board) ---------------- */
 
 .tip-strip {
   position: relative;
@@ -639,6 +658,12 @@ body {
 .tip-strip__inner {
   display: grid;
   gap: 4px;
+  min-width: 0;
+}
+.tip-strip__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 .tip-strip__title {
@@ -686,6 +711,40 @@ body {
 .tip-strip__body p:nth-child(2)::before { background: linear-gradient(180deg, var(--neon-lime), var(--neon-cyan)); }
 .tip-strip__body p:nth-child(3)::before { background: linear-gradient(180deg, var(--neon-gold), var(--neon-orange)); }
 .tip-strip__body p:nth-child(4)::before { background: linear-gradient(180deg, var(--neon-violet), var(--neon-pink)); }
+
+/* ---- Side variant: vertical column to the left of the board ---- */
+.tip-strip--side {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 10px;
+  padding: 12px 12px 14px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.tip-strip--side .tip-strip__head {
+  flex: 0 0 auto;
+}
+.tip-strip--side .tip-strip__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-height: none;
+  overflow: visible;
+}
+.tip-strip--side .tip-strip__body p {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  line-height: 1.35;
+  padding-left: 10px;
+}
+.tip-strip--side .tip-strip__title {
+  font-size: 15px;
+}
 
 /* ---------------- dock (right column) ---------------- */
 
@@ -1291,17 +1350,12 @@ body {
      • Portrait — board сверху, dock снизу с горизонтально-компактным шопом.
    =========================================================================== */
 
-/* ---- Tip strip (под полем «Как играть») — место в landscape тратить нельзя.
-   Оставляем его только в очень высоком portrait (mobile vertical). ---- */
-@media (orientation: landscape), (min-aspect-ratio: 1/1) {
-  .tip-strip { display: none; }
-}
-
-/* ===== Landscape / квадрат: side-by-side ===== */
+/* ===== Landscape / квадрат: side-by-side =====
+   Tip strip — слева как «как играть»-колонка, board по центру, dock справа. */
 @media (orientation: landscape), (min-aspect-ratio: 1/1) {
   .stage {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(220px, 28vw, 380px);
+    grid-template-columns: clamp(150px, 18vw, 240px) minmax(0, 1fr) clamp(220px, 28vw, 380px);
     grid-template-rows: minmax(0, 1fr);
     gap: clamp(4px, 1vw, 12px);
     min-height: 0;
@@ -1320,11 +1374,12 @@ body {
     place-items: center;
     min-height: 0;
     min-width: 0;
+    container-type: size;
   }
   .grid-wrap {
-    width: auto;
-    height: 100%;
     aspect-ratio: 1;
+    width: min(100cqw, 100cqh);
+    height: min(100cqw, 100cqh);
     max-width: 100%;
     max-height: 100%;
   }
@@ -1608,9 +1663,11 @@ body {
   .upgrade-group .shop-buy { grid-row: 1; }
 }
 
-/* ---- Очень узкое landscape (width ≤ 760) — ещё уже dock. ---- */
+/* ---- Очень узкое landscape (width ≤ 760) — ещё уже dock,
+   tip-strip прячем — места нет. ---- */
 @media (orientation: landscape) and (max-width: 760px) {
   .stage { grid-template-columns: minmax(0, 1fr) clamp(180px, 38vw, 280px); }
+  .tip-strip--side { display: none; }
   .upgrade-level { display: none; }
   .btn-kid.shop-buy { padding: 4px 8px; }
   .upgrade-group h3 { font-size: clamp(10.5px, 1.9vh, 12.5px); }
@@ -1690,7 +1747,7 @@ body {
 /* ---- Wide desktop (≥1280×900) — оставляем «жирный» layout исходным ---- */
 @media (min-width: 1281px) and (min-height: 901px) {
   .stage {
-    grid-template-columns: minmax(0, 1fr) clamp(320px, 30vw, 420px);
+    grid-template-columns: clamp(200px, 18vw, 280px) minmax(0, 1fr) clamp(320px, 30vw, 420px);
     gap: 12px;
   }
   /* Шоп возвращаем к вертикальной раскладке с полноценными апгрейдами. */
@@ -1725,6 +1782,10 @@ body {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dock-ads { grid-template-columns: 1fr 1fr; }
   .dock-ads #adInstantBtn { grid-column: 1 / -1; }
-  /* На крупном desktop возвращаем «Как играть». */
-  .tip-strip { display: grid; }
+  /* На крупном desktop оставляем «Как играть» как боковую колонку. */
+  .tip-strip--side {
+    padding: 14px 14px 16px;
+  }
+  .tip-strip--side .tip-strip__title { font-size: 16px; }
+  .tip-strip--side .tip-strip__body p { font-size: 13px; }
 }
