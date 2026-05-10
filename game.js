@@ -1559,6 +1559,9 @@ async function bootstrap() {
 // чтобы интерфейс не выходил за пределы экрана и не появлялись скроллбары.
 // Перед измерением сбрасываем предыдущий transform, иначе scrollWidth /
 // scrollHeight отдадут уже отмасштабированные значения и подгонка съедет.
+// Минимальный масштаб — чтобы текст оставался читаемым даже если CSS не успел
+// сжать содержимое (на действительно крошечных ландшафтных экранах).
+const MIN_FIT_SCALE = 0.7;
 let _fitting = false;
 function fitToScreen() {
   if (_fitting) return;
@@ -1584,7 +1587,10 @@ function fitToScreen() {
 
   const kw = vw / sw;
   const kh = vh / sh;
-  const k = Math.min(1, kw, kh);
+  const rawK = Math.min(1, kw, kh);
+  // Не сжимаем меньше MIN_FIT_SCALE: иначе текст становится нечитаемым.
+  // Если содержимое всё ещё больше — пусть скроллится внутри дока.
+  const k = Math.max(MIN_FIT_SCALE, rawK);
 
   if (k < 0.999) {
     app.style.position = "absolute";

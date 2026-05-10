@@ -1000,9 +1000,9 @@ body {
   font-size: 15.5px;
   line-height: 1.15;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 .btn-kid .btn-title.sm { font-size: 13px; white-space: normal; line-height: 1.2; }
 .btn-kid .btn-sub {
@@ -1011,9 +1011,9 @@ body {
   opacity: 0.95;
   color: rgba(255, 255, 255, 0.92);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.15;
 }
 
 .btn-kid.shop-buy {
@@ -1376,9 +1376,17 @@ body {
   .dock-actions { grid-area: act; grid-template-columns: 1fr; }
   .dock-ads { grid-area: ads; grid-template-columns: 1fr 1fr; }
   .dock-ads #adInstantBtn { grid-column: 1 / -1; }
-  .shop { grid-area: shop; grid-template-columns: auto 1fr 1fr 1fr; gap: 8px; align-items: start; }
+  .shop { grid-area: shop; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; }
   .shop__title { grid-column: 1 / -1; }
-  .upgrade-group { grid-column: span 1; }
+  .upgrade-group { grid-column: span 1; min-width: 0; }
+  /* На планшете ячейки уже — мельче шрифт, 2 строки по дефису. */
+  .meme .label {
+    font-size: clamp(9px, 1.1vw, 11px);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+  .meme .level { font-size: clamp(9px, 1.1vw, 10.5px); margin-top: 1px; }
+  .meme .meme-meta { padding: 2px 3px 2px; }
 }
 
 /* Узкий планшет / альбомный мобильник. */
@@ -1440,90 +1448,304 @@ body {
   .offline p { font-size: 15px; }
 }
 
-/* Мобильный landscape — компактный режим без табличной разбивки гайда. */
-@media (max-height: 500px) and (orientation: landscape) {
+/* ===========================================================================
+   Альбомная ориентация на мобильных / компактных экранах.
+   Цели:
+     • Все секции дока влезают по высоте без внутреннего скролла.
+     • Текст читается (минимум ~10.5px) и не схлопывается в "Нов...".
+     • Лейблы кнопок переносятся, а не обрезаются.
+     • Карточки апгрейдов в шопе — горизонтальная сетка из 3 колонок.
+   =========================================================================== */
+
+/* База: любой landscape ниже 600px по высоте — компактный режим. */
+@media (orientation: landscape) and (max-height: 600px) {
   .app {
-    padding: 4px 8px 6px;
-    gap: 4px;
+    padding: clamp(3px, 0.8vh, 6px) clamp(6px, 1.2vw, 12px);
+    gap: clamp(3px, 0.8vh, 6px);
     height: 100%;
     min-height: 0;
     overflow: hidden;
     grid-template-rows: auto minmax(0, 1fr);
   }
-  .topbar { padding: 4px 10px; gap: 8px; border-radius: 16px; }
-  .brand__logo { font-size: 20px; }
-  .brand__title { font-size: 15px; }
-  .sound-btn { padding: 4px 10px; font-size: 12px; gap: 5px; }
-  .sound-btn__sticker { font-size: 14px; }
+
+  .topbar {
+    padding: clamp(3px, 0.8vh, 6px) clamp(8px, 1.4vw, 14px);
+    gap: clamp(6px, 1.2vw, 12px);
+    border-radius: clamp(12px, 2vh, 18px);
+  }
+  .brand { gap: clamp(6px, 1vw, 10px); }
+  .brand__logo { font-size: clamp(18px, 3.6vh, 24px); }
+  .brand__title {
+    font-size: clamp(13px, 3vh, 19px);
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.1;
+  }
+  .sound-btn {
+    padding: clamp(3px, 0.7vh, 6px) clamp(8px, 1.3vw, 13px);
+    font-size: clamp(11px, 2.4vh, 14px);
+    gap: 5px;
+    border-radius: 999px;
+  }
+  .sound-btn__sticker { font-size: clamp(13px, 2.6vh, 17px); }
 
   .stage {
     display: grid;
-    flex-direction: row;
-    grid-template-columns: minmax(0, 1fr) clamp(220px, 28vw, 280px);
+    grid-template-columns: minmax(0, 1fr) clamp(240px, 38vw, 360px);
     grid-template-rows: 1fr;
-    gap: 6px;
+    gap: clamp(4px, 1vw, 8px);
     min-height: 0;
   }
+
   .board-zone { gap: 4px; flex: 1 1 auto; min-height: 0; }
   .board-wrap { width: auto; height: 100%; }
   .grid-wrap {
-    padding: 6px;
-    border-radius: 16px;
+    padding: clamp(4px, 1vh, 8px);
+    border-radius: clamp(12px, 2vh, 18px);
     width: auto;
     height: 100%;
     max-height: 100%;
     aspect-ratio: 1;
   }
-  .grid-wrap::before { border-radius: 18px; }
-  .board { gap: 4px; }
-  .cell { border-radius: 10px; }
-  .meme { border-radius: 9px; }
-  .meme .label { font-size: 12px; }
-  .meme .level { font-size: 11.5px; margin-top: 1px; }
-  .meme .meme-meta { padding: 3px 3px 2px; }
+  .grid-wrap::before { border-radius: clamp(14px, 2.2vh, 20px); }
+  .board { gap: clamp(3px, 0.8vh, 6px); }
+  .cell { border-radius: clamp(8px, 1.6vh, 12px); }
+  .meme { border-radius: clamp(7px, 1.4vh, 11px); padding: 2px; }
+  .meme .label {
+    font-size: clamp(10px, 1.9vh, 13px);
+    line-height: 1.05;
+  }
+  .meme .level {
+    font-size: clamp(9.5px, 1.7vh, 12px);
+    margin-top: 1px;
+    line-height: 1;
+  }
+  .meme .meme-meta { padding: 2px 3px 2px; }
 
   .tip-strip { display: none; }
 
+  /* Док — обычный flex-столбец, но БЕЗ overflow: содержимое должно влезать.
+     Если в редких случаях не влезает, fitToScreen в game.js масштабирует .app. */
   .dock {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    overflow-y: auto;
+    gap: clamp(3px, 0.8vh, 6px);
+    overflow: visible;
+    min-height: 0;
+    padding-right: 0;
   }
-  .stats { grid-template-columns: 1fr 1fr; gap: 4px; }
-  .stat { padding: 4px 6px 4px 28px; border-radius: 12px; }
-  .stat-sticker { font-size: 16px; left: 5px; }
-  .stat-label { font-size: 9.5px; }
-  .stat-value { font-size: 13px; }
-  .stat-sub { font-size: 10px; }
-  .dock-actions { grid-template-columns: 1fr 1fr; gap: 4px; }
-  .dock-ads { grid-template-columns: 1fr 1fr; gap: 4px; }
+
+  /* Статы: по умолчанию 2x2, чтобы значения (вроде "1 654 327") помещались. */
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(3px, 0.6vw, 6px);
+  }
+  .stat {
+    padding: clamp(3px, 0.7vh, 6px) clamp(4px, 0.7vw, 7px) clamp(3px, 0.7vh, 6px) clamp(22px, 4.2vh, 30px);
+    border-radius: clamp(9px, 1.6vh, 13px);
+    min-width: 0;
+  }
+  .stat-sticker {
+    font-size: clamp(13px, 2.6vh, 18px);
+    left: clamp(3px, 0.6vw, 6px);
+  }
+  .stat-label {
+    font-size: clamp(8.5px, 1.5vh, 10.5px);
+    letter-spacing: 0.04em;
+  }
+  .stat-value { font-size: clamp(11px, 2.2vh, 15px); }
+  .stat-sub { font-size: clamp(9px, 1.6vh, 11px); }
+
+  .dock-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(3px, 0.6vw, 6px);
+  }
+  .dock-ads {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(3px, 0.6vw, 6px);
+  }
   .dock-ads #adInstantBtn { grid-column: 1 / -1; }
-  .shop { padding: 6px; gap: 4px; }
-  .shop__title { font-size: 13px; margin: 0; }
-  .upgrade-group { padding: 4px 6px; border-radius: 10px; }
-  .upgrade-head { gap: 5px; margin-bottom: 2px; }
-  .upgrade-sticker { font-size: 16px; }
-  .upgrade-group h3 { font-size: 12px; }
-  .bonus-preview { font-size: 11px; margin: 0 0 3px; }
-  .upgrade-level { font-size: 10.5px; margin-top: 3px; }
-  .btn-kid {
-    padding: 5px 8px;
-    border-radius: 12px;
-    font-size: 12.5px;
-    gap: 6px;
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.28), 0 4px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+
+  /* Шоп — горизонтальная сетка из 3 апгрейдов. */
+  .shop {
+    padding: clamp(4px, 0.8vh, 7px);
+    gap: clamp(3px, 0.6vw, 6px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
   }
-  .btn-kid .btn-sticker { font-size: 20px; }
-  .btn-kid .btn-sticker.sm { font-size: 16px; }
-  .btn-kid .btn-title { font-size: 12.5px; }
-  .btn-kid .btn-title.sm { font-size: 11.5px; }
-  .btn-kid .btn-sub { font-size: 11.5px; }
-  .btn-kid.shop-buy { padding: 4px 6px; gap: 4px; }
-  .btn-kid.shop-buy > span:not(.btn-sticker):not(.price-tag) { font-size: 12px; }
-  .price-tag { padding: 1px 5px; font-size: 11px; }
-  .offline { padding: 12px; }
-  .offline h2 { font-size: 16px; }
-  .offline p { font-size: 13px; margin: 0 0 8px; }
-  .toast { padding: 6px 10px; font-size: 13px; bottom: 6px; }
+  .shop__title {
+    grid-column: 1 / -1;
+    font-size: clamp(11px, 2.2vh, 14px);
+    margin: 0;
+    gap: 4px;
+  }
+
+  .upgrade-group {
+    padding: clamp(3px, 0.7vh, 6px) clamp(4px, 0.7vw, 7px);
+    border-radius: clamp(8px, 1.5vh, 12px);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .upgrade-head {
+    gap: 4px;
+    margin-bottom: 1px;
+    align-items: center;
+  }
+  .upgrade-sticker { font-size: clamp(13px, 2.5vh, 17px); }
+  .upgrade-group h3 {
+    font-size: clamp(10.5px, 2vh, 13px);
+    line-height: 1.05;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bonus-preview {
+    font-size: clamp(9.5px, 1.7vh, 11.5px);
+    margin: 0 0 clamp(3px, 0.5vh, 5px);
+    line-height: 1.15;
+  }
+  .upgrade-level {
+    font-size: clamp(9px, 1.6vh, 11px);
+    margin-top: clamp(2px, 0.4vh, 4px);
+  }
+
+  /* Кнопки — текст переносится, не обрезается. */
+  .btn-kid {
+    padding: clamp(4px, 0.8vh, 7px) clamp(5px, 0.9vw, 9px);
+    border-radius: clamp(10px, 2vh, 14px);
+    font-size: clamp(10.5px, 2vh, 13px);
+    gap: clamp(4px, 0.7vw, 7px);
+    box-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.28),
+      0 3px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-width: 1.5px;
+    min-width: 0;
+  }
+  .btn-kid .btn-sticker { font-size: clamp(15px, 3vh, 22px); }
+  .btn-kid .btn-sticker.sm { font-size: clamp(12px, 2.4vh, 18px); }
+  .btn-kid .btn-main { gap: 0; min-width: 0; }
+  .btn-kid .btn-title {
+    font-size: clamp(10.5px, 2vh, 13px);
+    line-height: 1.1;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+  }
+  .btn-kid .btn-title.sm {
+    font-size: clamp(10px, 1.9vh, 12px);
+    line-height: 1.1;
+  }
+  .btn-kid .btn-sub {
+    font-size: clamp(9.5px, 1.8vh, 11.5px);
+    line-height: 1.1;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .btn-kid.shop-buy {
+    padding: clamp(3px, 0.6vh, 5px) clamp(4px, 0.7vw, 7px);
+    gap: clamp(3px, 0.5vw, 5px);
+  }
+  .btn-kid.shop-buy > span:not(.btn-sticker):not(.price-tag) {
+    font-size: clamp(9.5px, 1.8vh, 12px);
+  }
+  .btn-kid.shop-buy .btn-sticker.sm { font-size: clamp(12px, 2.4vh, 16px); }
+  .price-tag {
+    padding: 0 clamp(4px, 0.6vw, 6px);
+    font-size: clamp(9px, 1.7vh, 11px);
+    margin-left: 2px;
+  }
+
+  .btn-ad-row { gap: 5px; }
+  .btn-ad-countdown { font-size: clamp(9px, 1.7vh, 11px); }
+
+  .offline { padding: 12px; max-height: 88vh; }
+  .offline h2 { font-size: clamp(14px, 2.8vh, 17px); }
+  .offline p { font-size: clamp(11px, 2.2vh, 13.5px); margin: 0 0 8px; }
+  .toast { padding: 6px 10px; font-size: clamp(11px, 2.2vh, 13.5px); bottom: 6px; }
+}
+
+/* Очень короткие альбомные экраны (≤420px по высоте — iPhone SE land и т.п.). */
+@media (orientation: landscape) and (max-height: 420px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr) clamp(230px, 36vw, 320px);
+  }
+  .stat-label { font-size: clamp(8px, 1.7vh, 10px); }
+  .stat-value { font-size: clamp(10.5px, 2.4vh, 13px); }
+  .stat-sub { font-size: clamp(8.5px, 1.8vh, 10px); }
+  .upgrade-group h3 { font-size: clamp(10px, 2.2vh, 12px); }
+  .bonus-preview { font-size: clamp(9px, 1.9vh, 11px); }
+  .btn-kid .btn-title { font-size: clamp(10px, 2.2vh, 12.5px); }
+  .btn-kid .btn-sub { font-size: clamp(9px, 1.9vh, 11px); }
+}
+
+/* Шоп-кнопки в ландшафтном мобильном: вместо урезанного "У..." показываем только иконку и цену. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .btn-kid.shop-buy > span:not(.btn-sticker):not(.price-tag) {
+    display: none;
+  }
+  .btn-kid.shop-buy {
+    justify-content: center;
+    gap: clamp(4px, 0.8vw, 8px);
+  }
+  .btn-kid.shop-buy .btn-sticker.sm {
+    font-size: clamp(13px, 2.5vh, 18px);
+  }
+}
+
+/* Широкий ландшафтный мобильный (≥720px) — статы одной строкой 4×1. */
+@media (orientation: landscape) and (max-height: 600px) and (min-width: 720px) {
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .stat {
+    padding: clamp(3px, 0.7vh, 6px) clamp(4px, 0.7vw, 7px) clamp(3px, 0.7vh, 6px) clamp(20px, 4vh, 28px);
+  }
+}
+
+/* Очень узкие альбомные экраны (≤640px по ширине) — снижаем плотность,
+   статы в 2x2, апгрейды могут не помещаться в 3 колонки. */
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 640px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr) clamp(190px, 40vw, 240px);
+    gap: 4px;
+  }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .shop {
+    grid-template-columns: 1fr;
+  }
+  .upgrade-group {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 6px;
+    align-items: center;
+  }
+  .upgrade-head {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    margin-bottom: 0;
+  }
+  .upgrade-level {
+    grid-column: 3;
+    grid-row: 1;
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .bonus-preview {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    margin: 0;
+    align-self: center;
+  }
+  .upgrade-group .shop-buy {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: center;
+  }
 }
