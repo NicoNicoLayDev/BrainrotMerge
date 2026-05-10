@@ -1577,6 +1577,13 @@ function fitToScreen() {
   app.style.width = "";
   app.style.height = "";
 
+  // В портретной ориентации показываем оверлей «Поверни устройство»
+  // (см. styles.css). Никаких трансформаций не применяем.
+  if (window.matchMedia("(orientation: portrait)").matches) {
+    _fitting = false;
+    return;
+  }
+
   void app.offsetHeight;
 
   const sw = app.scrollWidth;

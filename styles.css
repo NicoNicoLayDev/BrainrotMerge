@@ -1616,178 +1616,75 @@ body {
   .upgrade-group h3 { font-size: clamp(10.5px, 1.9vh, 12.5px); }
 }
 
-/* ===== Portrait: column layout ===== */
+/* ===== Portrait: блокирующий экран «Поверни устройство» =====
+   Игра поддерживает только альбомную ориентацию. В портретной
+   мы скрываем основной интерфейс и показываем подсказку. */
+.rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: linear-gradient(160deg, #1a0b3d 0%, #0e0628 60%, #2a1252 100%);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: #fff;
+  font-family: var(--font-display);
+}
+.rotate-overlay__inner {
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.rotate-overlay__icon {
+  font-size: 64px;
+  display: inline-block;
+  transform-origin: center;
+  animation: rotateHint 2.4s ease-in-out infinite;
+}
+.rotate-overlay__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(95deg,
+    #fff 0%,
+    var(--neon-cyan-soft) 35%,
+    var(--neon-pink-soft) 65%,
+    #fff 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 14px rgba(255, 132, 243, 0.35);
+}
+.rotate-overlay__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.85);
+}
+@keyframes rotateHint {
+  0%   { transform: rotate(0deg); }
+  35%  { transform: rotate(0deg); }
+  55%  { transform: rotate(-90deg); }
+  85%  { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
 @media (orientation: portrait) {
-  .stage {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: clamp(4px, 1vh, 10px);
-    min-height: 0;
+  /* Скрываем интерфейс (включая декор и тосты) и показываем оверлей. */
+  .app,
+  .bg-decor,
+  .toast {
+    display: none !important;
   }
-  .board-zone {
+  .rotate-overlay {
     display: flex;
-    flex-direction: column;
-    flex: 0 0 auto;
-    gap: clamp(4px, 1vh, 8px);
-    min-height: 0;
   }
-  .board-wrap {
-    width: 100%;
-    display: grid;
-    place-items: center;
-    min-height: 0;
-  }
-  .grid-wrap {
-    width: min(100%, 42vh);
-    max-width: 100%;
-    max-height: 42vh;
-    height: auto;
-    aspect-ratio: 1;
-    padding: clamp(4px, 1vh, 8px);
-  }
-  .tip-strip { display: none; }
-
-  .dock {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(3px, 0.7vh, 7px);
-    overflow: visible;
-    min-height: 0;
-    padding-right: 0;
-  }
-  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-  .stat {
-    padding: 5px 7px 5px 28px;
-    border-radius: 12px;
-  }
-  .stat-sticker { font-size: 16px; left: 5px; }
-  .stat-label { font-size: 9.5px; }
-  .stat-value { font-size: 13px; }
-  .stat-sub { font-size: 9.5px; }
-
-  .dock-actions { grid-template-columns: 1fr 1fr; gap: 5px; }
-  .dock-ads { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-  .dock-ads #adInstantBtn { grid-column: auto; }
-
-  /* Шоп — горизонтально-компактные плитки в одну строку
-     (иконка + название · бонус · цена). */
-  .shop {
-    grid-template-columns: 1fr;
-    gap: 5px;
-    padding: 6px;
-  }
-  .shop__title { grid-column: 1 / -1; font-size: 13px; margin: 0; }
-  .upgrade-group {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    column-gap: 6px;
-    align-items: center;
-    padding: 4px 6px;
-    border-radius: 10px;
-  }
-  .upgrade-head {
-    grid-column: 1;
-    grid-row: 1;
-    margin: 0;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-  .upgrade-sticker { font-size: 16px; }
-  .upgrade-group h3 {
-    font-size: 11.5px;
-    line-height: 1.05;
-    white-space: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    max-width: 100%;
-  }
-  .upgrade-level { display: none; }
-  .bonus-preview {
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0;
-    align-self: center;
-    font-size: 10px;
-    line-height: 1.15;
-    text-align: right;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    min-width: 0;
-  }
-  .upgrade-group .shop-buy {
-    grid-column: 3;
-    grid-row: 1;
-    align-self: center;
-    flex-shrink: 0;
-  }
-  /* Заголовок секции занимает 1×3 как часть шопа. */
-  .upgrade-group:first-child {
-    /* спейсинг ок */
-  }
-
-  .btn-kid {
-    padding: 5px 8px;
-    font-size: 12px;
-    gap: 6px;
-    border-radius: 11px;
-    border-width: 1.5px;
-    box-shadow:
-      0 2px 0 rgba(0, 0, 0, 0.28),
-      0 3px 8px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-  .btn-kid .btn-sticker { font-size: 17px; }
-  .btn-kid .btn-sticker.sm { font-size: 14px; }
-  .btn-kid .btn-main { gap: 0; }
-  .btn-kid .btn-title { font-size: 12px; line-height: 1.1; white-space: normal; }
-  .btn-kid .btn-title.sm { font-size: 11px; line-height: 1.1; white-space: normal; }
-  .btn-kid .btn-sub { font-size: 10.5px; line-height: 1.1; white-space: normal; }
-  .btn-kid.shop-buy {
-    padding: 4px 7px;
-    gap: 4px;
-  }
-  .btn-kid.shop-buy > span:not(.btn-sticker):not(.price-tag) { display: none; }
-  .price-tag { font-size: 10.5px; padding: 1px 6px; margin-left: 2px; }
-  .btn-ad-row { gap: 4px; }
-  .btn-ad-countdown { font-size: 10px; }
-}
-
-/* ---- Очень узкое portrait (≤480) — самый компактный режим ---- */
-@media (orientation: portrait) and (max-width: 480px) {
-  .app { padding: 6px; gap: 6px; }
-  .topbar { padding: 6px 10px; }
-  .brand__title { font-size: 14px; }
-  .brand__logo { font-size: 22px; }
-  .sound-btn { padding: 5px 9px; font-size: 11.5px; }
-  .sound-btn__sticker { font-size: 14px; }
-  .grid-wrap { padding: 4px; width: min(100%, 40vh); max-height: 40vh; }
-  .board { gap: 4px; }
-  .stats { grid-template-columns: repeat(2, 1fr); gap: 5px; }
-  .dock-ads { grid-template-columns: 1fr 1fr; }
-  .dock-ads #adInstantBtn { grid-column: 1 / -1; }
-  .meme .label { font-size: 10.5px; }
-  .meme .level { font-size: 10px; }
-  .offline { width: min(360px, 92vw); padding: 14px; }
-  .offline h2 { font-size: 16px; }
-  .offline p { font-size: 13px; }
-  .upgrade-group h3 { font-size: 11px; }
-  .bonus-preview { font-size: 9.5px; -webkit-line-clamp: 2; }
-}
-
-/* ---- Очень короткое portrait (≤520px) — board сжимается ещё ---- */
-@media (orientation: portrait) and (max-height: 520px) {
-  .grid-wrap { width: min(100%, 38vh); max-height: 38vh; }
-  .stat-value { font-size: 12px; }
-  .stat-label { font-size: 9px; }
-  .btn-kid { font-size: 11.5px; padding: 5px 8px; }
-  .btn-kid .btn-title { font-size: 11.5px; }
-  .btn-kid .btn-sub { font-size: 10px; }
 }
 
 /* ---- Wide desktop (≥1280×900) — оставляем «жирный» layout исходным ---- */
