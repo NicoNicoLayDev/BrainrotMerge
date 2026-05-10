@@ -318,7 +318,9 @@ body {
 
 .stage {
   display: grid;
-  grid-template-columns: clamp(180px, 18vw, 240px) minmax(0, 1fr) clamp(320px, 30vw, 420px);
+  grid-template-columns: clamp(180px, 18vw, 240px) minmax(0, 1fr) clamp(300px, 28vw, 400px);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "tips board dock";
   gap: 12px;
   min-height: 0;
   min-width: 0;
@@ -327,6 +329,7 @@ body {
 /* ---------------- board zone ---------------- */
 
 .board-zone {
+  grid-area: board;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -340,7 +343,6 @@ body {
   place-items: center;
   min-height: 0;
   min-width: 0;
-  container-type: size;
 }
 .grid-wrap {
   position: relative;
@@ -353,10 +355,11 @@ body {
   border-radius: 26px;
   padding: 10px;
   overflow: hidden;
+  /* Размер выставляется JS-ом (sizeBoard) как min(width, height) родительского .board-wrap —
+     aspect-ratio + max-* ведёт себя непредсказуемо при ограниченной высоте в Chromium/Yandex.
+     Первый фрейм (до срабатывания JS) квадрат держит aspect-ratio. */
   aspect-ratio: 1;
-  /* Гарантируем, что поле всегда остаётся квадратом и влезает в колонку по обоим измерениям. */
-  width: min(100cqw, 100cqh);
-  height: min(100cqw, 100cqh);
+  width: 100%;
   max-width: 100%;
   max-height: 100%;
   box-shadow:
@@ -714,7 +717,8 @@ body {
 
 /* ---- Side variant: vertical column to the left of the board ---- */
 .tip-strip--side {
-  display: flex;
+  grid-area: tips;
+  display: flex !important;
   flex-direction: column;
   align-items: stretch;
   align-self: stretch;
@@ -749,6 +753,7 @@ body {
 /* ---------------- dock (right column) ---------------- */
 
 .dock {
+  grid-area: dock;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1355,12 +1360,14 @@ body {
 @media (orientation: landscape), (min-aspect-ratio: 1/1) {
   .stage {
     display: grid;
-    grid-template-columns: clamp(150px, 18vw, 240px) minmax(0, 1fr) clamp(220px, 28vw, 380px);
+    grid-template-columns: clamp(150px, 18vw, 240px) minmax(0, 1fr) clamp(220px, 26vw, 360px);
     grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "tips board dock";
     gap: clamp(4px, 1vw, 12px);
     min-height: 0;
   }
   .board-zone {
+    grid-area: board;
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
@@ -1374,14 +1381,13 @@ body {
     place-items: center;
     min-height: 0;
     min-width: 0;
-    container-type: size;
   }
   .grid-wrap {
     aspect-ratio: 1;
-    width: min(100cqw, 100cqh);
-    height: min(100cqw, 100cqh);
+    width: 100%;
     max-width: 100%;
     max-height: 100%;
+    /* Фактический размер выставляет sizeBoard() (см. game.js). */
   }
   .dock {
     display: flex;
@@ -1666,8 +1672,11 @@ body {
 /* ---- Очень узкое landscape (width ≤ 760) — ещё уже dock,
    tip-strip прячем — места нет. ---- */
 @media (orientation: landscape) and (max-width: 760px) {
-  .stage { grid-template-columns: minmax(0, 1fr) clamp(180px, 38vw, 280px); }
-  .tip-strip--side { display: none; }
+  .stage {
+    grid-template-columns: minmax(0, 1fr) clamp(180px, 38vw, 280px);
+    grid-template-areas: "board dock";
+  }
+  .tip-strip--side { display: none !important; }
   .upgrade-level { display: none; }
   .btn-kid.shop-buy { padding: 4px 8px; }
   .upgrade-group h3 { font-size: clamp(10.5px, 1.9vh, 12.5px); }
@@ -1747,7 +1756,8 @@ body {
 /* ---- Wide desktop (≥1280×900) — оставляем «жирный» layout исходным ---- */
 @media (min-width: 1281px) and (min-height: 901px) {
   .stage {
-    grid-template-columns: clamp(200px, 18vw, 280px) minmax(0, 1fr) clamp(320px, 30vw, 420px);
+    grid-template-columns: clamp(200px, 18vw, 280px) minmax(0, 1fr) clamp(300px, 26vw, 400px);
+    grid-template-areas: "tips board dock";
     gap: 12px;
   }
   /* Шоп возвращаем к вертикальной раскладке с полноценными апгрейдами. */
