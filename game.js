@@ -201,6 +201,13 @@ const state = {
 
 const el = {};
 const loadedMemeIcons = new Map();
+/**
+ * Мап декодированных AudioBuffer-ов для SFX. Играем их через Web Audio API
+ * (AudioBufferSourceNode), чтобы ОС (особенно iOS) не регистрировала вкладку как
+ * media-playback и не показывала системный плеер в панели уведомлений
+ * (яндекс игры, п. 1.6.1.6 / 1.6.2.5). HTMLAudioElement / new Audio() больше
+ * не используем.
+ */
 const loadedSounds = new Map();
 let audioCtx = null;
 let bgmBuffer = null;
@@ -268,11 +275,13 @@ function toast(message) {
 
 function playBeep(freq, duration = 0.08, type = "square", gain = 0.04) {
   if (!state.soundEnabled) return;
+  if (gamePausedForAd || gamePausedForVisibility) return;
   try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    if (!playBeep.ctx) playBeep.ctx = new Ctx();
-    const ctx = playBeep.ctx;
+    // Используем единый audioCtx, чтобы при suspend() (при показе рекламы или скрытии
+    // вкладки) весь звук игры глох.
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") { try { ctx.resume(); } catch (_) {} }
     const osc = ctx.createOscillator();
     const amp = ctx.createGain();
     osc.type = type;
@@ -296,16 +305,36 @@ function preloadImage(src) {
   });
 }
 
+/**
+ * Загружает звук в AudioBuffer через fetch + decodeAudioData. Специально
+ * НЕ используем HTMLAudioElement (new Audio()), чтобы iOS не выводил
+ * плеер в панели уведомлений / на lock-screen. Яндекс Игры, п. 1.6.1.6.
+ */
 function preloadAudio(src) {
-  return new Promise((resolve) => {
-    const a = new Audio();
-    a.preload = "auto";
-    try { a.disableRemotePlayback = true; } catch (_) {}
-    a.addEventListener("canplaythrough", () => resolve(a), { once: true });
-    a.addEventListener("error", () => resolve(null), { once: true });
-    a.src = src;
-    try { a.load(); } catch (_) { resolve(null); }
-  });
+  const ctx = getAudioContext();
+  if (!ctx) return Promise.resolve(null);
+  return fetch(src)
+    .then((r) => (r && r.ok ? r.arrayBuffer() : null))
+    .then((buf) => {
+      if (!buf) return null;
+      return new Promise((resolve) => {
+        let resolved = false;
+        const done = (b) => { if (!resolved) { resolved = true; resolve(b || null); } };
+        try {
+          const p = ctx.decodeAudioData(
+            buf,
+            (b) => done(b),
+            () => done(null)
+          );
+          if (p && typeof p.then === "function") {
+            p.then((b) => done(b)).catch(() => done(null));
+          }
+        } catch (_) {
+          done(null);
+        }
+      });
+    })
+    .catch(() => null);
 }
 
 function getAudioContext() {
@@ -323,27 +352,37 @@ async function loadAssets() {
     if (img) loadedMemeIcons.set(i + 1, ASSETS.memeIcons[i]);
   });
 
-  const soundEntries = Object.entries(ASSETS.sounds);
+  // SFX декодируем в AudioBuffer (Web Audio API), чтобы не создавать <audio> элементы.
+  // BGM (фоновая музыка) декодируется лениво в ensureBackgroundMusic() после
+  // первого пользовательского жеста.
+  const soundEntries = Object.entries(ASSETS.sounds).filter(([k]) => k !== "background");
   const soundLoads = soundEntries.map(([, src]) => preloadAudio(src));
   const soundResults = await Promise.all(soundLoads);
-  soundResults.forEach((audio, i) => {
-    if (audio) loadedSounds.set(soundEntries[i][0], audio);
+  soundResults.forEach((buffer, i) => {
+    if (buffer) loadedSounds.set(soundEntries[i][0], buffer);
   });
 }
 
 function playSoundEffect(key, fallbackArgs) {
   if (!state.soundEnabled) return;
   if (gamePausedForAd || gamePausedForVisibility) return;
-  const template = loadedSounds.get(key);
-  if (template && key !== "background") {
+  const buffer = loadedSounds.get(key);
+  if (buffer && key !== "background") {
     try {
-      const src = template.currentSrc || template.src;
-      if (!src) throw new Error("no src");
-      const a = new Audio(src);
-      try { a.disableRemotePlayback = true; } catch (_) {}
-      a.volume = clampVolume(MASTER_VOLUME);
-      const p = a.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
+      const ctx = getAudioContext();
+      if (!ctx) throw new Error("no ctx");
+      // Если контекст приостановлен (после первого жеста / скрытия), возобновим.
+      // НИКОГДА не возобновляем во время рекламы / скрытой вкладки (п. 4.7).
+      if (ctx.state === "suspended") {
+        try { ctx.resume(); } catch (_) {}
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      gain.gain.value = clampVolume(MASTER_VOLUME);
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
       return;
     } catch (_) {
       // Fall through to beep fallback.
@@ -427,27 +466,21 @@ function clearBgmFadeTimer() {
   }
 }
 
+/**
+ * П. 4.7 Яндекс.Игр: при показе полноэкранной рекламы звук игры ОБЯЗАН
+ * мгновенно вставать на паузу. Никаких фейдов: сразу обнуляем gain BGM
+ * и приостанавливаем audioCtx (это глушит и все SFX-sourceы через Web Audio).
+ */
 function suspendBgmForAd() {
   clearBgmFadeTimer();
   bgmSuspendedForAd = false;
-  if (!state.soundEnabled || !bgmGain) return;
+  if (!audioCtx) return;
   bgmSuspendedForAd = true;
   try {
-    const startVol = getBgmVolume();
-    const fadeMs = 200;
-    const step = 40;
-    let elapsed = 0;
-    bgmFadeTimer = setInterval(() => {
-      elapsed += step;
-      const k = Math.min(1, elapsed / fadeMs);
-      setBgmVolume(Math.max(0, startVol * (1 - k)));
-      if (k >= 1) {
-        clearBgmFadeTimer();
-        if (audioCtx && audioCtx.state === "running") {
-          try { audioCtx.suspend(); } catch (_) {}
-        }
-      }
-    }, step);
+    if (bgmGain) setBgmVolume(0);
+    if (audioCtx.state === "running") {
+      try { audioCtx.suspend(); } catch (_) {}
+    }
   } catch (_) {
     bgmSuspendedForAd = false;
   }
@@ -455,11 +488,9 @@ function suspendBgmForAd() {
 
 function resumeBgmAfterAd() {
   clearBgmFadeTimer();
-  if (!bgmSuspendedForAd || !state.soundEnabled) {
-    bgmSuspendedForAd = false;
-    return;
-  }
+  if (!bgmSuspendedForAd) return;
   bgmSuspendedForAd = false;
+  if (!state.soundEnabled) return;
   if (!bgmGain || !audioCtx) return;
   const ready = audioCtx.state === "suspended" ? audioCtx.resume() : Promise.resolve();
   ready.then(() => {
@@ -1208,19 +1239,54 @@ const ysdk = {
   player: null,
   gameplayStarted: false,
   interstitialShowing: false,
-  async init() {
+  gameReadySignaled: false,
+  /** Поднимаем только SDK и синхронизируем локаль — быстрая фаза, раньше
+   *  первого рендера, чтобы UI рисовался сразу на нужном языке (п. 2.14). */
+  async initSdkAndLocale() {
     if (!window.YaGames) return;
     try {
       this.sdk = await window.YaGames.init();
       state.yandexReady = true;
+      // Язык сквозь всю игру определяется из environment.i18n.lang ДО первого рендера.
+      // Сохранённый выбор пользователя (state.localeOverridden) имеет приоритет.
+      syncLocaleFromSdk();
+      // Если signalGameReady был вызван до завершения SDK init (например, init
+      // не уложился в timeout) — отдаём LoadingAPI.ready теперь, как только SDK готов.
+      if (this.gameReadySignaled) {
+        try { this.sdk?.features?.LoadingAPI?.ready?.(); } catch (_) {}
+        this.startGameplay();
+      }
+    } catch (e) {
+      console.warn("Yandex SDK init failed", e);
+    }
+  },
+  /** Сообщаем яндекс-платформе, что игра готова К ИГРЕ (не в загрузке).
+   *  П. 1.19 Яндекс.Игр. Вызывается ИЗ bootstrap() СРАЗУ после первого рендера
+   *  и bindEvents(), без ожидания getPlayer / cloud-load. */
+  signalGameReady() {
+    if (this.gameReadySignaled) return;
+    this.gameReadySignaled = true;
+    if (this.sdk) {
+      try { this.sdk?.features?.LoadingAPI?.ready?.(); } catch (e) { /* noop */ }
+      this.startGameplay();
+    }
+  },
+  /** Фоновая догрузка игрока / облачных сейвов после того как игра уже играбельна. */
+  async hydratePlayerAndCloud() {
+    if (!this.sdk) return;
+    try {
       this.player = await this.sdk.getPlayer({ scopes: false });
       state.playerName = this.player?.getName?.() || state.playerName;
       await this.loadCloudData();
+      // После хидратации облачными данными локаль может поменяться — перерисовываем
+      // и снова пробуем синхрон с SDK (если флаг localeOverridden не взведён).
       syncLocaleFromSdk();
-      this.sdk.features?.LoadingAPI?.ready?.();
-      this.startGameplay();
+      applyLocaleTexts();
+      renderBoard();
+      renderUI();
+      showOfflinePanel();
     } catch (e) {
-      console.warn("Yandex SDK init failed", e);
+      console.warn("Player/cloud hydrate failed", e);
     }
   },
   startGameplay() {
@@ -1485,9 +1551,27 @@ function cacheElements() {
 
 async function bootstrap() {
   cacheElements();
+
+  // Стартуем SDK инит ПАРАЛЛЕЛЬНО с загрузкой ассетов, чтобы ко времени первого
+  // рендера уже было известно environment.i18n.lang — яндекс игры, п. 2.14.
+  // SDK init ожидаем с таймаутом (локальная разработка / блокировщик рекламы
+  // не должны блокировать рендер на произвольное время).
+  const SDK_INIT_TIMEOUT_MS = 4000;
+  const sdkReadyPromise = Promise.race([
+    ysdk.initSdkAndLocale(),
+    new Promise((resolve) => setTimeout(resolve, SDK_INIT_TIMEOUT_MS))
+  ]);
+
   await loadAssets();
+  await sdkReadyPromise;
+
   window.addEventListener("pointerdown", ensureBackgroundMusic, { once: true });
   loadGame();
+  // Повторно пытаемся синхрон языка после загрузки локального сейва. Если пользователь
+  // не переопределил язык (state.localeOverridden = false), выберём тот, что
+  // прислал Яндекс SDK.
+  syncLocaleFromSdk();
+  applyLocaleTexts();
   bindEvents();
   if (!state.board.some(Boolean)) {
     spawnMeme(1);
@@ -1495,7 +1579,14 @@ async function bootstrap() {
   }
   showOfflinePanel();
   renderBoard();
-  ysdk.init();
+  renderUI();
+
+  // П. 1.19 Яндекс.Игр: GameReady (LoadingAPI.ready) вызываем СРАЗУ после того
+  // как игра рендернулась и стала принимать ввод — НЕ после cloud-подгрузки.
+  ysdk.signalGameReady();
+
+  // Игрока и cloud догружаем в фоне — это не требуется для игры.
+  ysdk.hydratePlayerAndCloud();
 
   let last = performance.now();
   setInterval(() => {
